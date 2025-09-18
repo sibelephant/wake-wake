@@ -1,0 +1,3 @@
+// This would be an actual MP3 file in a real implementation
+// For now, we'll use system sounds and vibration as fallback
+export default null;
