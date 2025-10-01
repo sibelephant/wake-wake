@@ -10,22 +10,12 @@ import {
   Modal,
 } from 'react-native';
 import { router } from 'expo-router';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { MaterialIcons } from '@expo/vector-icons';
 
 const COLORS = [
-  '#6366f1', // Blue
-  '#ef4444', // Red
-  '#06b6d4', // Cyan
-  '#f97316', // Orange
-  '#8b5cf6', // Purple
-  '#84cc16', // Lime
-  '#ec4899', // Pink
-  '#10b981', // Emerald
-  '#f59e0b', // Amber
-  '#3b82f6', // Blue
-  '#8b5cf6', // Violet
-  '#06b6d4', // Sky
+  '#6366f1', '#ef4444', '#06b6d4', '#f97316',
+  '#8b5cf6', '#84cc16', '#ec4899', '#10b981',
+  '#f59e0b', '#3b82f6', '#8b5cf6', '#06b6d4',
 ];
 
 const MELODIES = [
@@ -73,7 +63,8 @@ export default function AddAlarmScreen() {
     setWorkoutCount(workout.defaultCount);
   };
 
-  const saveAlarm = async () => {
+  const saveAlarm = () => {
+    // Just simulate alarm save, no backend/storage
     const newAlarm = {
       id: Date.now().toString(),
       title: title || 'New Alarm',
@@ -89,15 +80,8 @@ export default function AddAlarmScreen() {
       createdAt: new Date().toISOString(),
     };
 
-    try {
-      const existingAlarms = await AsyncStorage.getItem('alarms');
-      const alarms = existingAlarms ? JSON.parse(existingAlarms) : [];
-      alarms.push(newAlarm);
-      await AsyncStorage.setItem('alarms', JSON.stringify(alarms));
-      router.back();
-    } catch (error) {
-      console.error('Error saving alarm:', error);
-    }
+    console.log('Alarm created (not saved):', newAlarm);
+    router.back(); // go back as before
   };
 
   const CountModal = () => (
@@ -114,23 +98,19 @@ export default function AddAlarmScreen() {
           <Text style={styles.modalSubtitle}>
             How many {workoutType.unit}?
           </Text>
-          
           <View style={styles.countSelector}>
             <TouchableOpacity
               style={styles.countButton}
               onPress={() => setWorkoutCount(Math.max(1, workoutCount - 5))}>
               <MaterialIcons name="remove" size={24} color="#6366f1" />
             </TouchableOpacity>
-            
             <Text style={styles.countText}>{workoutCount}</Text>
-            
             <TouchableOpacity
               style={styles.countButton}
               onPress={() => setWorkoutCount(workoutCount + 5)}>
               <MaterialIcons name="add" size={24} color="#6366f1" />
             </TouchableOpacity>
           </View>
-          
           <View style={styles.modalButtons}>
             <TouchableOpacity
               style={styles.modalCancelButton}
@@ -151,7 +131,6 @@ export default function AddAlarmScreen() {
   return (
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
-      
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
           <Text style={styles.cancelText}>Cancel</Text>
@@ -281,7 +260,6 @@ export default function AddAlarmScreen() {
               </TouchableOpacity>
             ))}
           </View>
-          
           <TouchableOpacity
             style={styles.countCustomizer}
             onPress={() => setShowCountModal(true)}>
@@ -297,6 +275,8 @@ export default function AddAlarmScreen() {
     </View>
   );
 }
+
+// Styles remain exactly the same
 
 const styles = StyleSheet.create({
   container: {
