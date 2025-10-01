@@ -12,7 +12,9 @@ import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 
 export default function WorkoutCompleteScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const params = useLocalSearchParams();
+  const id = typeof params.id === 'string' ? params.id : params.id?.[0] || '';
+
   const scaleAnim = new Animated.Value(0);
   const fadeAnim = new Animated.Value(0);
 
@@ -47,26 +49,23 @@ export default function WorkoutCompleteScreen() {
   };
 
   return (
-    <LinearGradient
-      colors={['#10b981', '#059669']}
-      style={styles.container}>
-      
-      <Animated.View 
+    <LinearGradient colors={['#10b981', '#059669']} style={styles.container}>
+      <Animated.View
         style={[
           styles.content,
           {
             opacity: fadeAnim,
-            transform: [{ scale: scaleAnim }]
-          }
-        ]}>
-        
+            transform: [{ scale: scaleAnim }],
+          },
+        ]}
+      >
         <View style={styles.iconContainer}>
           <MaterialIcons name="check-circle" size={120} color="white" />
         </View>
 
         <Text style={styles.title}>Congratulations!</Text>
         <Text style={styles.subtitle}>You completed your workout!</Text>
-        
+
         <View style={styles.achievementContainer}>
           <Text style={styles.achievementText}>🎉 Workout Complete!</Text>
           <Text style={styles.achievementSubtext}>
@@ -80,13 +79,13 @@ export default function WorkoutCompleteScreen() {
             <Text style={styles.statLabel}>Workout</Text>
             <Text style={styles.statValue}>Completed</Text>
           </View>
-          
+
           <View style={styles.statItem}>
             <MaterialIcons name="alarm" size={24} color="white" />
             <Text style={styles.statLabel}>Alarm</Text>
             <Text style={styles.statValue}>Dismissed</Text>
           </View>
-          
+
           <View style={styles.statItem}>
             <MaterialIcons name="energy-savings-leaf" size={24} color="white" />
             <Text style={styles.statLabel}>Energy</Text>
@@ -96,23 +95,25 @@ export default function WorkoutCompleteScreen() {
 
         <View style={styles.motivationContainer}>
           <Text style={styles.motivationText}>
-            "The way you start your morning sets the tone for your entire day. Great job taking control!"
+            "The way you start your morning sets the tone for your entire day.
+            Great job taking control!"
           </Text>
         </View>
-
       </Animated.View>
 
       <View style={styles.buttonContainer}>
         <TouchableOpacity
           style={styles.historyButton}
-          onPress={handleViewHistory}>
+          onPress={handleViewHistory}
+        >
           <MaterialIcons name="history" size={20} color="#10b981" />
           <Text style={styles.historyButtonText}>View History</Text>
         </TouchableOpacity>
-        
+
         <TouchableOpacity
           style={styles.continueButton}
-          onPress={handleContinue}>
+          onPress={handleContinue}
+        >
           <Text style={styles.continueButtonText}>Continue</Text>
           <MaterialIcons name="arrow-forward" size={20} color="white" />
         </TouchableOpacity>

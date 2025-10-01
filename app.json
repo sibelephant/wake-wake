@@ -28,7 +28,8 @@
             "background-fetch"
           ]
         }
-      ]
+      ],
+      "expo-audio"
     ],
     "experiments": {
       "typedRoutes": true

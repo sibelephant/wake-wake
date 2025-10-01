@@ -8,14 +8,27 @@ import {
   ScrollView,
   StatusBar,
   Modal,
+  Alert,
+  FlatList,
 } from 'react-native';
 import { router } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
+import AlarmManager from '@/utils/alarmManager';
+import NotificationManager from '@/utils/notificationManager';
 
 const COLORS = [
-  '#6366f1', '#ef4444', '#06b6d4', '#f97316',
-  '#8b5cf6', '#84cc16', '#ec4899', '#10b981',
-  '#f59e0b', '#3b82f6', '#8b5cf6', '#06b6d4',
+  '#6366f1',
+  '#ef4444',
+  '#06b6d4',
+  '#f97316',
+  '#8b5cf6',
+  '#84cc16',
+  '#ec4899',
+  '#10b981',
+  '#f59e0b',
+  '#3b82f6',
+  '#8b5cf6',
+  '#06b6d4',
 ];
 
 const MELODIES = [
@@ -27,61 +40,230 @@ const MELODIES = [
 ];
 
 const WORKOUT_TYPES = [
-  { name: 'jumping-jacks', display: 'Jumping Jacks', defaultCount: 20, unit: 'reps' },
+  {
+    name: 'jumping-jacks',
+    display: 'Jumping Jacks',
+    defaultCount: 20,
+    unit: 'reps',
+  },
   { name: 'push-ups', display: 'Push-ups', defaultCount: 15, unit: 'reps' },
   { name: 'sit-ups', display: 'Sit-ups', defaultCount: 25, unit: 'reps' },
   { name: 'squats', display: 'Squats', defaultCount: 20, unit: 'reps' },
   { name: 'burpees', display: 'Burpees', defaultCount: 10, unit: 'reps' },
   { name: 'steps', display: 'Walking Steps', defaultCount: 100, unit: 'steps' },
   { name: 'plank', display: 'Plank Hold', defaultCount: 30, unit: 'seconds' },
-  { name: 'mountain-climbers', display: 'Mountain Climbers', defaultCount: 30, unit: 'reps' },
+  {
+    name: 'mountain-climbers',
+    display: 'Mountain Climbers',
+    defaultCount: 30,
+    unit: 'reps',
+  },
 ];
 
 export default function AddAlarmScreen() {
   const [time, setTime] = useState({ hours: 9, minutes: 0 });
   const [period, setPeriod] = useState<'AM' | 'PM'>('AM');
-  const [selectedDays, setSelectedDays] = useState<string[]>(['Mon', 'Tue', 'Wed', 'Thu', 'Fri']);
+  const [selectedDays, setSelectedDays] = useState<string[]>([
+    'Mon',
+    'Tue',
+    'Wed',
+    'Thu',
+    'Fri',
+  ]);
   const [title, setTitle] = useState('');
   const [selectedColor, setSelectedColor] = useState(COLORS[0]);
   const [selectedMelody, setSelectedMelody] = useState(MELODIES[0]);
   const [workoutType, setWorkoutType] = useState(WORKOUT_TYPES[0]);
-  const [workoutCount, setWorkoutCount] = useState(WORKOUT_TYPES[0].defaultCount);
+  const [workoutCount, setWorkoutCount] = useState(
+    WORKOUT_TYPES[0].defaultCount
+  );
   const [showCountModal, setShowCountModal] = useState(false);
+  const [showTimeModal, setShowTimeModal] = useState(false);
 
   const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
   const toggleDay = (day: string) => {
-    setSelectedDays(prev =>
-      prev.includes(day)
-        ? prev.filter(d => d !== day)
-        : [...prev, day]
+    setSelectedDays((prev) =>
+      prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day]
     );
   };
 
-  const handleWorkoutTypeChange = (workout: typeof WORKOUT_TYPES[0]) => {
+  const handleWorkoutTypeChange = (workout: (typeof WORKOUT_TYPES)[0]) => {
     setWorkoutType(workout);
     setWorkoutCount(workout.defaultCount);
   };
 
-  const saveAlarm = () => {
-    // Just simulate alarm save, no backend/storage
+  const saveAlarm = async () => {
+    // Validate that at least one day is selected
+    if (selectedDays.length === 0) {
+      Alert.alert('Error', 'Please select at least one day for the alarm');
+      return;
+    }
+
     const newAlarm = {
       id: Date.now().toString(),
       title: title || 'New Alarm',
-      time: `${String(time.hours).padStart(2, '0')}:${String(time.minutes).padStart(2, '0')}`,
+      time: `${String(time.hours).padStart(2, '0')}:${String(
+        time.minutes
+      ).padStart(2, '0')}`,
       period,
       days: selectedDays,
       color: selectedColor,
-      melody: selectedMelody,
+      melody: selectedMelody.file,
       enabled: true,
       workoutType: workoutType.name,
       workoutCount,
-      workoutUnit: workoutType.unit,
-      createdAt: new Date().toISOString(),
     };
 
-    console.log('Alarm created (not saved):', newAlarm);
-    router.back(); // go back as before
+    try {
+      // Get alarm and notification managers
+      const alarmManager = AlarmManager.getInstance();
+      const notificationManager = NotificationManager.getInstance();
+
+      // Load existing alarms
+      const existingAlarms = await alarmManager.loadAlarms();
+
+      // Add new alarm
+      await alarmManager.saveAlarms([...existingAlarms, newAlarm]);
+
+      // Schedule notifications
+      await notificationManager.scheduleAlarmNotifications([
+        ...existingAlarms,
+        newAlarm,
+      ]);
+
+      Alert.alert('Success', 'Alarm created successfully!', [
+        { text: 'OK', onPress: () => router.back() },
+      ]);
+    } catch (error) {
+      console.error('Error saving alarm:', error);
+      Alert.alert('Error', 'Failed to save alarm. Please try again.');
+    }
+  };
+
+  const TimePickerModal = () => {
+    const hours = Array.from({ length: 12 }, (_, i) => i + 1);
+    const minutes = Array.from({ length: 60 }, (_, i) => i);
+
+    return (
+      <Modal
+        visible={showTimeModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowTimeModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.timeModalContent}>
+            <Text style={styles.modalTitle}>Set Time</Text>
+
+            <View style={styles.timePickerRow}>
+              {/* Hours Picker */}
+              <View style={styles.pickerColumn}>
+                <Text style={styles.pickerLabel}>Hour</Text>
+                <ScrollView
+                  style={styles.pickerScroll}
+                  showsVerticalScrollIndicator={false}
+                >
+                  {hours.map((hour) => (
+                    <TouchableOpacity
+                      key={`hour-${hour}`}
+                      style={[
+                        styles.pickerItem,
+                        time.hours === hour && styles.pickerItemActive,
+                      ]}
+                      onPress={() => setTime({ ...time, hours: hour })}
+                    >
+                      <Text
+                        style={[
+                          styles.pickerItemText,
+                          time.hours === hour && styles.pickerItemTextActive,
+                        ]}
+                      >
+                        {String(hour).padStart(2, '0')}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+
+              {/* Minutes Picker */}
+              <View style={styles.pickerColumn}>
+                <Text style={styles.pickerLabel}>Minute</Text>
+                <ScrollView
+                  style={styles.pickerScroll}
+                  showsVerticalScrollIndicator={false}
+                >
+                  {minutes.map((minute) => (
+                    <TouchableOpacity
+                      key={`minute-${minute}`}
+                      style={[
+                        styles.pickerItem,
+                        time.minutes === minute && styles.pickerItemActive,
+                      ]}
+                      onPress={() => setTime({ ...time, minutes: minute })}
+                    >
+                      <Text
+                        style={[
+                          styles.pickerItemText,
+                          time.minutes === minute &&
+                            styles.pickerItemTextActive,
+                        ]}
+                      >
+                        {String(minute).padStart(2, '0')}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+
+              {/* Period Picker */}
+              <View style={styles.pickerColumn}>
+                <Text style={styles.pickerLabel}>Period</Text>
+                <ScrollView
+                  style={styles.pickerScroll}
+                  showsVerticalScrollIndicator={false}
+                >
+                  {['AM', 'PM'].map((p) => (
+                    <TouchableOpacity
+                      key={p}
+                      style={[
+                        styles.pickerItem,
+                        period === p && styles.pickerItemActive,
+                      ]}
+                      onPress={() => setPeriod(p as 'AM' | 'PM')}
+                    >
+                      <Text
+                        style={[
+                          styles.pickerItemText,
+                          period === p && styles.pickerItemTextActive,
+                        ]}
+                      >
+                        {p}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+            </View>
+
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={styles.modalCancelButton}
+                onPress={() => setShowTimeModal(false)}
+              >
+                <Text style={styles.modalCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.modalSaveButton}
+                onPress={() => setShowTimeModal(false)}
+              >
+                <Text style={styles.modalSaveText}>Done</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+    );
   };
 
   const CountModal = () => (
@@ -89,37 +271,38 @@ export default function AddAlarmScreen() {
       visible={showCountModal}
       transparent
       animationType="slide"
-      onRequestClose={() => setShowCountModal(false)}>
+      onRequestClose={() => setShowCountModal(false)}
+    >
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
-          <Text style={styles.modalTitle}>
-            Set {workoutType.display} Count
-          </Text>
-          <Text style={styles.modalSubtitle}>
-            How many {workoutType.unit}?
-          </Text>
+          <Text style={styles.modalTitle}>Set {workoutType.display} Count</Text>
+          <Text style={styles.modalSubtitle}>How many {workoutType.unit}?</Text>
           <View style={styles.countSelector}>
             <TouchableOpacity
               style={styles.countButton}
-              onPress={() => setWorkoutCount(Math.max(1, workoutCount - 5))}>
+              onPress={() => setWorkoutCount(Math.max(1, workoutCount - 5))}
+            >
               <MaterialIcons name="remove" size={24} color="#6366f1" />
             </TouchableOpacity>
             <Text style={styles.countText}>{workoutCount}</Text>
             <TouchableOpacity
               style={styles.countButton}
-              onPress={() => setWorkoutCount(workoutCount + 5)}>
+              onPress={() => setWorkoutCount(workoutCount + 5)}
+            >
               <MaterialIcons name="add" size={24} color="#6366f1" />
             </TouchableOpacity>
           </View>
           <View style={styles.modalButtons}>
             <TouchableOpacity
               style={styles.modalCancelButton}
-              onPress={() => setShowCountModal(false)}>
+              onPress={() => setShowCountModal(false)}
+            >
               <Text style={styles.modalCancelText}>Cancel</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.modalSaveButton}
-              onPress={() => setShowCountModal(false)}>
+              onPress={() => setShowCountModal(false)}
+            >
               <Text style={styles.modalSaveText}>Done</Text>
             </TouchableOpacity>
           </View>
@@ -143,43 +326,81 @@ export default function AddAlarmScreen() {
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Time Picker */}
-        <View style={styles.timePickerContainer}>
+        <TouchableOpacity
+          style={styles.timePickerContainer}
+          onPress={() => setShowTimeModal(true)}
+          activeOpacity={0.7}
+        >
           <View style={styles.timePicker}>
             <View style={styles.timeColumn}>
               <Text style={styles.timeLabel}>Hours</Text>
               <View style={styles.timeValues}>
-                <Text style={styles.inactiveTime}>08</Text>
-                <Text style={styles.activeTime}>{String(time.hours).padStart(2, '0')}</Text>
-                <Text style={styles.inactiveTime}>10</Text>
+                <Text style={styles.inactiveTime}>
+                  {String(time.hours === 1 ? 12 : time.hours - 1).padStart(
+                    2,
+                    '0'
+                  )}
+                </Text>
+                <Text style={styles.activeTime}>
+                  {String(time.hours).padStart(2, '0')}
+                </Text>
+                <Text style={styles.inactiveTime}>
+                  {String(time.hours === 12 ? 1 : time.hours + 1).padStart(
+                    2,
+                    '0'
+                  )}
+                </Text>
               </View>
             </View>
             <Text style={styles.timeSeparator}>:</Text>
             <View style={styles.timeColumn}>
               <Text style={styles.timeLabel}>Minutes</Text>
               <View style={styles.timeValues}>
-                <Text style={styles.inactiveTime}>59</Text>
-                <Text style={styles.activeTime}>{String(time.minutes).padStart(2, '0')}</Text>
-                <Text style={styles.inactiveTime}>01</Text>
+                <Text style={styles.inactiveTime}>
+                  {String((time.minutes + 59) % 60).padStart(2, '0')}
+                </Text>
+                <Text style={styles.activeTime}>
+                  {String(time.minutes).padStart(2, '0')}
+                </Text>
+                <Text style={styles.inactiveTime}>
+                  {String((time.minutes + 1) % 60).padStart(2, '0')}
+                </Text>
+              </View>
+            </View>
+            <View style={styles.timeColumn}>
+              <Text style={styles.timeLabel}>Period</Text>
+              <View style={styles.timeValues}>
+                <Text style={styles.inactiveTime}>
+                  {period === 'AM' ? 'PM' : 'AM'}
+                </Text>
+                <Text style={styles.activeTime}>{period}</Text>
+                <Text style={styles.inactiveTime}>
+                  {period === 'AM' ? 'PM' : 'AM'}
+                </Text>
               </View>
             </View>
           </View>
-        </View>
+          <Text style={styles.tapToEditText}>Tap to edit time</Text>
+        </TouchableOpacity>
 
         {/* Days Selector */}
         <View style={styles.section}>
           <View style={styles.daysContainer}>
-            {days.map(day => (
+            {days.map((day) => (
               <TouchableOpacity
                 key={day}
                 style={[
                   styles.dayButton,
-                  selectedDays.includes(day) && styles.dayButtonActive
+                  selectedDays.includes(day) && styles.dayButtonActive,
                 ]}
-                onPress={() => toggleDay(day)}>
-                <Text style={[
-                  styles.dayText,
-                  selectedDays.includes(day) && styles.dayTextActive
-                ]}>
+                onPress={() => toggleDay(day)}
+              >
+                <Text
+                  style={[
+                    styles.dayText,
+                    selectedDays.includes(day) && styles.dayTextActive,
+                  ]}
+                >
                   {day}
                 </Text>
               </TouchableOpacity>
@@ -208,9 +429,10 @@ export default function AddAlarmScreen() {
                 style={[
                   styles.colorButton,
                   { backgroundColor: color },
-                  selectedColor === color && styles.colorButtonActive
+                  selectedColor === color && styles.colorButtonActive,
                 ]}
-                onPress={() => setSelectedColor(color)}>
+                onPress={() => setSelectedColor(color)}
+              >
                 {selectedColor === color && (
                   <Text style={styles.colorCheckMark}>✓</Text>
                 )}
@@ -223,15 +445,17 @@ export default function AddAlarmScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Select Melody</Text>
           <View style={styles.melodiesContainer}>
-            {MELODIES.map(melody => (
+            {MELODIES.map((melody) => (
               <TouchableOpacity
                 key={melody.name}
                 style={[
                   styles.melodyButton,
                   { backgroundColor: melody.color },
-                  selectedMelody.name === melody.name && styles.melodyButtonActive
+                  selectedMelody.name === melody.name &&
+                    styles.melodyButtonActive,
                 ]}
-                onPress={() => setSelectedMelody(melody)}>
+                onPress={() => setSelectedMelody(melody)}
+              >
                 <Text style={styles.melodyIcon}>{melody.icon}</Text>
                 <Text style={styles.melodyName}>{melody.name}</Text>
               </TouchableOpacity>
@@ -243,18 +467,23 @@ export default function AddAlarmScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Wake-up Workout</Text>
           <View style={styles.workoutContainer}>
-            {WORKOUT_TYPES.map(workout => (
+            {WORKOUT_TYPES.map((workout) => (
               <TouchableOpacity
                 key={workout.name}
                 style={[
                   styles.workoutButton,
-                  workoutType.name === workout.name && styles.workoutButtonActive
+                  workoutType.name === workout.name &&
+                    styles.workoutButtonActive,
                 ]}
-                onPress={() => handleWorkoutTypeChange(workout)}>
-                <Text style={[
-                  styles.workoutText,
-                  workoutType.name === workout.name && styles.workoutTextActive
-                ]}>
+                onPress={() => handleWorkoutTypeChange(workout)}
+              >
+                <Text
+                  style={[
+                    styles.workoutText,
+                    workoutType.name === workout.name &&
+                      styles.workoutTextActive,
+                  ]}
+                >
                   {workout.display}
                 </Text>
               </TouchableOpacity>
@@ -262,7 +491,8 @@ export default function AddAlarmScreen() {
           </View>
           <TouchableOpacity
             style={styles.countCustomizer}
-            onPress={() => setShowCountModal(true)}>
+            onPress={() => setShowCountModal(true)}
+          >
             <Text style={styles.countCustomizerText}>
               {workoutCount} {workoutType.unit}
             </Text>
@@ -270,7 +500,8 @@ export default function AddAlarmScreen() {
           </TouchableOpacity>
         </View>
       </ScrollView>
-      
+
+      <TimePickerModal />
       <CountModal />
     </View>
   );
@@ -543,6 +774,59 @@ const styles = StyleSheet.create({
   },
   modalSaveText: {
     fontSize: 16,
+    color: 'white',
+    fontWeight: '600',
+  },
+  tapToEditText: {
+    fontSize: 14,
+    color: '#94a3b8',
+    marginTop: 10,
+    textAlign: 'center',
+  },
+  timeModalContent: {
+    backgroundColor: 'white',
+    borderRadius: 20,
+    padding: 25,
+    minWidth: 320,
+    maxHeight: '70%',
+  },
+  timePickerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginVertical: 20,
+    gap: 10,
+  },
+  pickerColumn: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  pickerLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#64748b',
+    marginBottom: 10,
+  },
+  pickerScroll: {
+    maxHeight: 200,
+    width: '100%',
+  },
+  pickerItem: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    marginVertical: 4,
+    backgroundColor: '#f8fafc',
+    alignItems: 'center',
+  },
+  pickerItemActive: {
+    backgroundColor: '#6366f1',
+  },
+  pickerItemText: {
+    fontSize: 18,
+    fontWeight: '500',
+    color: '#64748b',
+  },
+  pickerItemTextActive: {
     color: 'white',
     fontWeight: '600',
   },

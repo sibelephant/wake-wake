@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
 
-interface Alarm {
+export interface Alarm {
   id: string;
   title: string;
   time: string;
@@ -10,14 +10,14 @@ interface Alarm {
   color: string;
   melody: string;
   enabled: boolean;
-  workoutType: 'jumping-jacks' | 'push-ups' | 'sit-ups';
+  workoutType: string;
   workoutCount: number;
 }
 
 export class AlarmManager {
   private static instance: AlarmManager;
   private alarms: Alarm[] = [];
-  private timers: Map<string, NodeJS.Timeout> = new Map();
+  private timers: Map<string, any> = new Map();
 
   public static getInstance(): AlarmManager {
     if (!AlarmManager.instance) {
@@ -53,11 +53,11 @@ export class AlarmManager {
 
   private scheduleAlarms(): void {
     // Clear existing timers
-    this.timers.forEach(timer => clearTimeout(timer));
+    this.timers.forEach((timer) => clearTimeout(timer));
     this.timers.clear();
 
     // Schedule enabled alarms
-    this.alarms.forEach(alarm => {
+    this.alarms.forEach((alarm) => {
       if (alarm.enabled) {
         this.scheduleAlarm(alarm);
       }
@@ -67,21 +67,21 @@ export class AlarmManager {
   private scheduleAlarm(alarm: Alarm): void {
     const now = new Date();
     const currentDay = now.toLocaleDateString('en-US', { weekday: 'short' });
-    
+
     if (!alarm.days.includes(currentDay)) {
       return; // Alarm not scheduled for today
     }
 
     const [hours, minutes] = alarm.time.split(':').map(Number);
     const alarmTime = new Date(now);
-    
+
     let alarmHours = hours;
     if (alarm.period === 'PM' && hours !== 12) {
       alarmHours += 12;
     } else if (alarm.period === 'AM' && hours === 12) {
       alarmHours = 0;
     }
-    
+
     alarmTime.setHours(alarmHours, minutes, 0, 0);
 
     // If alarm time has passed today, schedule for tomorrow
@@ -104,7 +104,7 @@ export class AlarmManager {
   }
 
   async updateAlarm(id: string, updates: Partial<Alarm>): Promise<void> {
-    const alarmIndex = this.alarms.findIndex(alarm => alarm.id === id);
+    const alarmIndex = this.alarms.findIndex((alarm) => alarm.id === id);
     if (alarmIndex !== -1) {
       this.alarms[alarmIndex] = { ...this.alarms[alarmIndex], ...updates };
       await this.saveAlarms(this.alarms);
@@ -112,7 +112,7 @@ export class AlarmManager {
   }
 
   async deleteAlarm(id: string): Promise<void> {
-    this.alarms = this.alarms.filter(alarm => alarm.id !== id);
+    this.alarms = this.alarms.filter((alarm) => alarm.id !== id);
     await this.saveAlarms(this.alarms);
   }
 }

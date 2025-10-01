@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -8,10 +8,10 @@ import {
   BackHandler,
 } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
-import { Accelerometer } from 'expo-sensors';
-import { Audio } from 'expo-av';
+import { useAudioPlayer } from 'expo-audio';
 import * as KeepAwake from 'expo-keep-awake';
 import * as Haptics from 'expo-haptics';
+import { Accelerometer } from 'expo-sensors';
 
 interface WorkoutSession {
   type: 'jumping-jacks' | 'push-ups' | 'sit-ups';
@@ -21,60 +21,76 @@ interface WorkoutSession {
 }
 
 export default function WorkoutScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const params = useLocalSearchParams();
+  const id = typeof params.id === 'string' ? params.id : params.id?.[0] || '';
+
   const [session, setSession] = useState<WorkoutSession>({
     type: 'jumping-jacks',
     target: 20,
     current: 0,
     isActive: true,
   });
-  
-  const [isDetecting, setIsDetecting] = useState(false);
-  const [accelerometerData, setAccelerometerData] = useState({ x: 0, y: 0, z: 0 });
-  const [sound, setSound] = useState<Audio.Sound>();
+
+  const [accelerometerData, setAccelerometerData] = useState({
+    x: 0,
+    y: 0,
+    z: 0,
+  });
+  const player = useAudioPlayer(require('@/assets/sounds/alarm.mp3'));
   const lastMovementTime = useRef(Date.now());
   const movementThreshold = 1.5;
+  const accelerometerSubscription = useRef<{ remove: () => void } | null>(null);
 
   useEffect(() => {
     // Keep screen awake
-    KeepAwake.activateKeepAwake();
-    
+    KeepAwake.activateKeepAwakeAsync();
+
     // Disable back button
     const backAction = () => {
-      Alert.alert('Complete Workout', 'You must complete your workout to dismiss the alarm!');
+      Alert.alert(
+        'Complete Workout',
+        'You must complete your workout to dismiss the alarm!'
+      );
       return true;
     };
-    
-    const backHandler = BackHandler.addEventListener('hardwareBackPress', backAction);
-    
+
+    const backHandler = BackHandler.addEventListener(
+      'hardwareBackPress',
+      backAction
+    );
+
     // Start accelerometer
     startAccelerometer();
-    
+
     // Play alarm sound
     playAlarmSound();
 
     return () => {
       KeepAwake.deactivateKeepAwake();
       backHandler.remove();
-      Accelerometer.removeAllListeners();
-      if (sound) {
-        sound.unloadAsync();
+      if (accelerometerSubscription.current) {
+        accelerometerSubscription.current.remove();
+      }
+      if (player.playing) {
+        player.pause();
       }
     };
   }, []);
 
   const startAccelerometer = () => {
     Accelerometer.setUpdateInterval(100);
-    Accelerometer.addListener(accelerometerData => {
-      setAccelerometerData(accelerometerData);
-      detectMovement(accelerometerData);
+    accelerometerSubscription.current = Accelerometer.addListener((data) => {
+      setAccelerometerData(data);
+      detectMovement(data);
     });
   };
 
   const detectMovement = (data: { x: number; y: number; z: number }) => {
-    const magnitude = Math.sqrt(data.x * data.x + data.y * data.y + data.z * data.z);
+    const magnitude = Math.sqrt(
+      data.x * data.x + data.y * data.y + data.z * data.z
+    );
     const now = Date.now();
-    
+
     if (magnitude > movementThreshold && now - lastMovementTime.current > 500) {
       lastMovementTime.current = now;
       incrementCount();
@@ -83,28 +99,27 @@ export default function WorkoutScreen() {
 
   const incrementCount = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    
-    setSession(prev => {
+
+    setSession((prev) => {
       const newCount = prev.current + 1;
-      
+
       if (newCount >= prev.target) {
         completeWorkout();
         return { ...prev, current: newCount, isActive: false };
       }
-      
+
       return { ...prev, current: newCount };
     });
   };
 
   const completeWorkout = async () => {
     try {
-      if (sound) {
-        await sound.stopAsync();
-        await sound.unloadAsync();
+      if (player.playing) {
+        player.pause();
       }
-      
+
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      
+
       Alert.alert(
         'Workout Complete!',
         'Great job! Your alarm has been dismissed.',
@@ -121,16 +136,14 @@ export default function WorkoutScreen() {
     }
   };
 
-  const playAlarmSound = async () => {
+  const playAlarmSound = () => {
     try {
-      const { sound } = await Audio.Sound.createAsync(
-        // Using a system sound for the alarm
-        { uri: 'https://www.soundjay.com/misc/sounds/bell-ringing-05.wav' },
-        { shouldPlay: true, isLooping: true }
-      );
-      setSound(sound);
+      // Play alarm sound with looping
+      player.loop = true;
+      player.play();
     } catch (error) {
       console.error('Error playing alarm sound:', error);
+      Alert.alert('Audio Error', 'Could not play alarm sound');
     }
   };
 
@@ -148,9 +161,10 @@ export default function WorkoutScreen() {
   };
 
   const getWorkoutTitle = () => {
-    return session.type.split('-').map(word => 
-      word.charAt(0).toUpperCase() + word.slice(1)
-    ).join(' ');
+    return session.type
+      .split('-')
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
   };
 
   return (
@@ -158,10 +172,10 @@ export default function WorkoutScreen() {
       <View style={styles.header}>
         <Text style={styles.alarmText}>ALARM</Text>
         <Text style={styles.timeText}>
-          {new Date().toLocaleTimeString([], { 
-            hour: '2-digit', 
+          {new Date().toLocaleTimeString([], {
+            hour: '2-digit',
             minute: '2-digit',
-            hour12: true 
+            hour12: true,
           })}
         </Text>
       </View>
@@ -169,17 +183,17 @@ export default function WorkoutScreen() {
       <View style={styles.workoutSection}>
         <Text style={styles.workoutTitle}>{getWorkoutTitle()}</Text>
         <Text style={styles.instructions}>{getWorkoutInstructions()}</Text>
-        
+
         <View style={styles.counterContainer}>
           <Text style={styles.counterText}>
             {session.current} / {session.target}
           </Text>
           <View style={styles.progressBar}>
-            <View 
+            <View
               style={[
                 styles.progressFill,
-                { width: `${(session.current / session.target) * 100}%` }
-              ]} 
+                { width: `${(session.current / session.target) * 100}%` },
+              ]}
             />
           </View>
         </View>
@@ -187,7 +201,8 @@ export default function WorkoutScreen() {
         {session.isActive && (
           <View style={styles.motionIndicator}>
             <Text style={styles.motionText}>
-              Movement: {accelerometerData.x.toFixed(2)}, {accelerometerData.y.toFixed(2)}, {accelerometerData.z.toFixed(2)}
+              Movement: {accelerometerData.x.toFixed(2)},{' '}
+              {accelerometerData.y.toFixed(2)}, {accelerometerData.z.toFixed(2)}
             </Text>
           </View>
         )}
@@ -196,14 +211,19 @@ export default function WorkoutScreen() {
       <View style={styles.motivationSection}>
         <Text style={styles.motivationText}>
           {session.current === 0 && "Let's get moving! 💪"}
-          {session.current > 0 && session.current < session.target && "Keep going! You're doing great! 🔥"}
-          {session.current >= session.target && "Amazing! You did it! 🎉"}
+          {session.current > 0 &&
+            session.current < session.target &&
+            "Keep going! You're doing great! 🔥"}
+          {session.current >= session.target && 'Amazing! You did it! 🎉'}
         </Text>
       </View>
 
-      <TouchableOpacity 
+      <TouchableOpacity
         style={[styles.emergencyButton, { opacity: 0.3 }]}
-        onPress={() => Alert.alert('Emergency Only', 'This button is for emergencies only!')}>
+        onPress={() =>
+          Alert.alert('Emergency Only', 'This button is for emergencies only!')
+        }
+      >
         <Text style={styles.emergencyText}>Emergency Dismiss</Text>
       </TouchableOpacity>
     </View>
