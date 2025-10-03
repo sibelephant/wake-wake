@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
+import { Audio } from 'expo-av';
 import AlarmManager from '@/utils/alarmManager';
 import NotificationManager from '@/utils/notificationManager';
 
@@ -31,12 +32,51 @@ const COLORS = [
   '#06b6d4',
 ];
 
+// Sound file mapping for dynamic requires
+const SOUND_MAP: Record<string, any> = {
+  'alarm.wav': require('@/assets/sounds/alarm.wav'),
+  'gentle.wav': require('@/assets/sounds/gentle.wav'),
+  'energetic.wav': require('@/assets/sounds/energetic.wav'),
+  'nature.wav': require('@/assets/sounds/nature.wav'),
+  'digital.wav': require('@/assets/sounds/digital.wav'),
+};
+
 const MELODIES = [
-  { name: 'Classic', color: '#6366f1', icon: '♪', file: 'classic.mp3' },
-  { name: 'Wind', color: '#ef4444', icon: '♪', file: 'wind.mp3' },
-  { name: 'Ocean', color: '#06b6d4', icon: '♪', file: 'ocean.mp3' },
-  { name: 'Rain', color: '#8b5cf6', icon: '♪', file: 'rain.mp3' },
-  { name: 'Birds', color: '#f97316', icon: '♪', file: 'birds.mp3' },
+  {
+    name: 'Default',
+    color: '#6366f1',
+    icon: '🔔',
+    file: 'alarm.wav',
+    description: 'Classic alarm sound',
+  },
+  {
+    name: 'Gentle',
+    color: '#10b981',
+    icon: '🎵',
+    file: 'gentle.wav',
+    description: 'Soft wake-up tone',
+  },
+  {
+    name: 'Energetic',
+    color: '#ef4444',
+    icon: '⚡',
+    file: 'energetic.wav',
+    description: 'High energy alarm',
+  },
+  {
+    name: 'Nature',
+    color: '#06b6d4',
+    icon: '🌊',
+    file: 'nature.wav',
+    description: 'Natural sounds',
+  },
+  {
+    name: 'Digital',
+    color: '#8b5cf6',
+    icon: '📱',
+    file: 'digital.wav',
+    description: 'Digital beeps',
+  },
 ];
 
 const WORKOUT_TYPES = [
@@ -79,6 +119,8 @@ export default function AddAlarmScreen() {
   );
   const [showCountModal, setShowCountModal] = useState(false);
   const [showTimeModal, setShowTimeModal] = useState(false);
+  const [playingPreview, setPlayingPreview] = useState<string | null>(null);
+  const previewSoundRef = useRef<Audio.Sound | null>(null);
 
   const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
@@ -126,18 +168,83 @@ export default function AddAlarmScreen() {
       // Add new alarm
       await alarmManager.saveAlarms([...existingAlarms, newAlarm]);
 
-      // Schedule notifications
-      await notificationManager.scheduleAlarmNotifications([
-        ...existingAlarms,
-        newAlarm,
-      ]);
+      // Schedule notifications (non-blocking, don't let this fail the save)
+      try {
+        await notificationManager.scheduleAlarmNotifications([
+          ...existingAlarms,
+          newAlarm,
+        ]);
+        console.log('✅ Alarm saved and notifications scheduled');
+      } catch (notificationError) {
+        console.warn(
+          '⚠️ Alarm saved but notification scheduling failed:',
+          notificationError
+        );
+        // Don't fail the entire operation for notification issues
+      }
 
       Alert.alert('Success', 'Alarm created successfully!', [
         { text: 'OK', onPress: () => router.back() },
       ]);
     } catch (error) {
-      console.error('Error saving alarm:', error);
+      console.error('❌ Error saving alarm:', error);
       Alert.alert('Error', 'Failed to save alarm. Please try again.');
+    }
+  };
+
+  const playPreviewSound = async (melody: (typeof MELODIES)[0]) => {
+    try {
+      // Stop any currently playing preview
+      if (previewSoundRef.current) {
+        await previewSoundRef.current.stopAsync();
+        await previewSoundRef.current.unloadAsync();
+        previewSoundRef.current = null;
+      }
+
+      // If clicking the same melody, just stop (toggle off)
+      if (playingPreview === melody.name) {
+        setPlayingPreview(null);
+        return;
+      }
+
+      // Play the preview sound
+      setPlayingPreview(melody.name);
+
+      await Audio.setAudioModeAsync({
+        playsInSilentModeIOS: true,
+        staysActiveInBackground: false,
+      });
+
+      // Use the sound file from the assets
+      const soundSource = SOUND_MAP[melody.file];
+      if (!soundSource) {
+        console.error(`Sound file not found: ${melody.file}`);
+        setPlayingPreview(null);
+        return;
+      }
+
+      const { sound } = await Audio.Sound.createAsync(soundSource, {
+        isLooping: false,
+        volume: 0.5,
+      });
+
+      previewSoundRef.current = sound;
+      setPlayingPreview(melody.name);
+
+      await sound.playAsync();
+
+      // Auto-stop after 3 seconds
+      setTimeout(async () => {
+        if (previewSoundRef.current) {
+          await previewSoundRef.current.stopAsync();
+          await previewSoundRef.current.unloadAsync();
+          previewSoundRef.current = null;
+          setPlayingPreview(null);
+        }
+      }, 3000);
+    } catch (error) {
+      console.error('Error playing preview:', error);
+      setPlayingPreview(null);
     }
   };
 
@@ -443,21 +550,57 @@ export default function AddAlarmScreen() {
 
         {/* Melody Selection */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Select Melody</Text>
-          <View style={styles.melodiesContainer}>
+          <Text style={styles.sectionTitle}>Select Alarm Sound</Text>
+          <Text style={styles.sectionSubtitle}>
+            Tap to select, long press to preview
+          </Text>
+          <View style={styles.melodiesContainerNew}>
             {MELODIES.map((melody) => (
               <TouchableOpacity
                 key={melody.name}
                 style={[
-                  styles.melodyButton,
-                  { backgroundColor: melody.color },
+                  styles.melodyCard,
                   selectedMelody.name === melody.name &&
-                    styles.melodyButtonActive,
+                    styles.melodyCardActive,
                 ]}
                 onPress={() => setSelectedMelody(melody)}
+                onLongPress={() => playPreviewSound(melody)}
+                delayLongPress={200}
               >
-                <Text style={styles.melodyIcon}>{melody.icon}</Text>
-                <Text style={styles.melodyName}>{melody.name}</Text>
+                <View style={styles.melodyCardContent}>
+                  <View
+                    style={[
+                      styles.melodyIconContainer,
+                      { backgroundColor: melody.color },
+                    ]}
+                  >
+                    <Text style={styles.melodyIconNew}>{melody.icon}</Text>
+                  </View>
+                  <View style={styles.melodyInfo}>
+                    <Text
+                      style={[
+                        styles.melodyNameNew,
+                        selectedMelody.name === melody.name &&
+                          styles.melodyNameActive,
+                      ]}
+                    >
+                      {melody.name}
+                    </Text>
+                    <Text style={styles.melodyDescription}>
+                      {melody.description}
+                    </Text>
+                  </View>
+                  {playingPreview === melody.name && (
+                    <MaterialIcons name="volume-up" size={20} color="#6366f1" />
+                  )}
+                  {selectedMelody.name === melody.name && (
+                    <MaterialIcons
+                      name="check-circle"
+                      size={24}
+                      color="#6366f1"
+                    />
+                  )}
+                </View>
               </TouchableOpacity>
             ))}
           </View>
@@ -665,6 +808,58 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: 'white',
     fontWeight: '500',
+  },
+  sectionSubtitle: {
+    fontSize: 13,
+    color: '#64748b',
+    marginBottom: 12,
+    marginTop: -8,
+  },
+  melodiesContainerNew: {
+    gap: 12,
+  },
+  melodyCard: {
+    backgroundColor: '#f8fafc',
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#e2e8f0',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+  },
+  melodyCardActive: {
+    backgroundColor: '#eff6ff',
+    borderColor: '#6366f1',
+  },
+  melodyCardContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  melodyIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  melodyIconNew: {
+    fontSize: 24,
+  },
+  melodyInfo: {
+    flex: 1,
+  },
+  melodyNameNew: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1e293b',
+    marginBottom: 2,
+  },
+  melodyNameActive: {
+    color: '#6366f1',
+  },
+  melodyDescription: {
+    fontSize: 13,
+    color: '#64748b',
   },
   workoutContainer: {
     gap: 12,

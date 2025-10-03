@@ -8,10 +8,22 @@ import {
   BackHandler,
 } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
-import { useAudioPlayer } from 'expo-audio';
+import { Audio } from 'expo-av';
 import * as KeepAwake from 'expo-keep-awake';
 import * as Haptics from 'expo-haptics';
 import { Accelerometer } from 'expo-sensors';
+import AlarmManager, { Alarm } from '@/utils/alarmManager';
+
+// Sound file mapping for dynamic requires
+const SOUND_MAP: Record<string, any> = {
+  'alarm.wav': require('@/assets/sounds/alarm.wav'),
+  'gentle.wav': require('@/assets/sounds/gentle.wav'),
+  'energetic.wav': require('@/assets/sounds/energetic.wav'),
+  'nature.wav': require('@/assets/sounds/nature.wav'),
+  'digital.wav': require('@/assets/sounds/digital.wav'),
+  // Fallback for old MP3 format
+  'alarm.mp3': require('@/assets/sounds/alarm.mp3'),
+};
 
 interface WorkoutSession {
   type: 'jumping-jacks' | 'push-ups' | 'sit-ups';
@@ -24,6 +36,7 @@ export default function WorkoutScreen() {
   const params = useLocalSearchParams();
   const id = typeof params.id === 'string' ? params.id : params.id?.[0] || '';
 
+  const [alarm, setAlarm] = useState<Alarm | null>(null);
   const [session, setSession] = useState<WorkoutSession>({
     type: 'jumping-jacks',
     target: 20,
@@ -36,10 +49,35 @@ export default function WorkoutScreen() {
     y: 0,
     z: 0,
   });
-  const player = useAudioPlayer(require('@/assets/sounds/alarm.mp3'));
+  const soundRef = useRef<Audio.Sound | null>(null);
   const lastMovementTime = useRef(Date.now());
   const movementThreshold = 1.5;
   const accelerometerSubscription = useRef<{ remove: () => void } | null>(null);
+
+  // Load alarm data
+  useEffect(() => {
+    const loadAlarmData = async () => {
+      try {
+        const alarmManager = AlarmManager.getInstance();
+        const alarms = await alarmManager.loadAlarms();
+        const foundAlarm = alarms.find((a) => a.id === id);
+
+        if (foundAlarm) {
+          setAlarm(foundAlarm);
+          setSession({
+            type: foundAlarm.workoutType as WorkoutSession['type'],
+            target: foundAlarm.workoutCount,
+            current: 0,
+            isActive: true,
+          });
+        }
+      } catch (error) {
+        console.error('Error loading alarm:', error);
+      }
+    };
+
+    loadAlarmData();
+  }, [id]);
 
   useEffect(() => {
     // Keep screen awake
@@ -71,8 +109,8 @@ export default function WorkoutScreen() {
       if (accelerometerSubscription.current) {
         accelerometerSubscription.current.remove();
       }
-      if (player.playing) {
-        player.pause();
+      if (soundRef.current) {
+        soundRef.current.unloadAsync();
       }
     };
   }, []);
@@ -114,8 +152,9 @@ export default function WorkoutScreen() {
 
   const completeWorkout = async () => {
     try {
-      if (player.playing) {
-        player.pause();
+      if (soundRef.current) {
+        await soundRef.current.stopAsync();
+        await soundRef.current.unloadAsync();
       }
 
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -136,11 +175,43 @@ export default function WorkoutScreen() {
     }
   };
 
-  const playAlarmSound = () => {
+  const playAlarmSound = async () => {
     try {
-      // Play alarm sound with looping
-      player.loop = true;
-      player.play();
+      await Audio.setAudioModeAsync({
+        playsInSilentModeIOS: true,
+        staysActiveInBackground: true,
+        shouldDuckAndroid: false,
+      });
+
+      // Use the alarm's selected melody
+      const soundFile = alarm?.melody || 'alarm.wav';
+      console.log(
+        `🔔 Playing alarm sound: ${soundFile} for alarm: ${
+          alarm?.title || 'Unknown'
+        }`
+      );
+
+      // Get the sound source from the mapping
+      const soundSource = SOUND_MAP[soundFile];
+      if (!soundSource) {
+        console.error(`Sound file not found: ${soundFile}, using default`);
+        // Fallback to default alarm sound
+        const { sound } = await Audio.Sound.createAsync(
+          SOUND_MAP['alarm.wav'],
+          { isLooping: true, volume: 1.0 }
+        );
+        soundRef.current = sound;
+        await sound.playAsync();
+        return;
+      }
+
+      const { sound } = await Audio.Sound.createAsync(soundSource, {
+        isLooping: true,
+        volume: 1.0,
+      });
+
+      soundRef.current = sound;
+      await sound.playAsync();
     } catch (error) {
       console.error('Error playing alarm sound:', error);
       Alert.alert('Audio Error', 'Could not play alarm sound');
@@ -170,7 +241,12 @@ export default function WorkoutScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.alarmText}>ALARM</Text>
+        <Text style={styles.alarmText}>ALARM 🔔</Text>
+        {alarm && (
+          <Text style={styles.alarmTitle}>
+            {alarm.title || 'Morning Workout'}
+          </Text>
+        )}
         <Text style={styles.timeText}>
           {new Date().toLocaleTimeString([], {
             hour: '2-digit',
@@ -246,7 +322,14 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#ef4444',
     letterSpacing: 2,
-    marginBottom: 10,
+    marginBottom: 8,
+  },
+  alarmTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#ffffff',
+    marginBottom: 12,
+    textAlign: 'center',
   },
   timeText: {
     fontSize: 48,

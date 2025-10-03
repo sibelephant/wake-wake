@@ -46,8 +46,10 @@ export class AlarmManager {
       this.alarms = alarms;
       await AsyncStorage.setItem('alarms', JSON.stringify(alarms));
       this.scheduleAlarms();
+      console.log(`✅ Saved ${alarms.length} alarms to AsyncStorage`);
     } catch (error) {
-      console.error('Error saving alarms:', error);
+      console.error('❌ Error saving alarms to AsyncStorage:', error);
+      throw error; // Re-throw the error so the calling code knows it failed
     }
   }
 

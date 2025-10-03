@@ -66,18 +66,36 @@ export class NotificationManager {
       return;
     }
 
-    await Notifications.cancelAllScheduledNotificationsAsync();
+    try {
+      await Notifications.cancelAllScheduledNotificationsAsync();
 
-    const hasPermission = await this.requestPermissions();
-    if (!hasPermission) {
-      console.warn('Notification permissions not granted');
-      return;
-    }
-
-    for (const alarm of alarms) {
-      if (alarm.enabled) {
-        await this.scheduleAlarmNotification(alarm);
+      const hasPermission = await this.requestPermissions();
+      if (!hasPermission) {
+        console.warn('Notification permissions not granted');
+        return;
       }
+
+      for (const alarm of alarms) {
+        if (alarm.enabled) {
+          try {
+            await this.scheduleAlarmNotification(alarm);
+          } catch (scheduleError) {
+            console.warn(
+              `Failed to schedule notification for alarm ${alarm.id}:`,
+              scheduleError
+            );
+            // Continue with other alarms
+          }
+        }
+      }
+      console.log(
+        `✅ Scheduled notifications for ${
+          alarms.filter((a) => a.enabled).length
+        } alarms`
+      );
+    } catch (error) {
+      console.error('❌ Error in scheduleAlarmNotifications:', error);
+      throw error; // Re-throw so calling code can handle it
     }
   }
 
