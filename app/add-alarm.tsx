@@ -27,9 +27,8 @@ const COLORS = [
   '#ec4899',
   '#10b981',
   '#f59e0b',
-  '#3b82f6',
-  '#8b5cf6',
-  '#06b6d4',
+  '#008080'
+
 ];
 
 // Sound file mapping for dynamic requires
@@ -41,39 +40,47 @@ const SOUND_MAP: Record<string, any> = {
   'digital.wav': require('@/assets/sounds/digital.wav'),
 };
 
-const MELODIES = [
+type MelodyType = {
+  name: string;
+  color: string;
+  icon: keyof typeof MaterialIcons.glyphMap;
+  file: string;
+  description: string;
+};
+
+const MELODIES: MelodyType[] = [
   {
-    name: 'Default',
+    name: 'Classic',
     color: '#6366f1',
-    icon: '🔔',
+    icon: 'music-note',
     file: 'alarm.wav',
     description: 'Classic alarm sound',
   },
   {
-    name: 'Gentle',
-    color: '#10b981',
-    icon: '🎵',
+    name: 'Wind',
+    color: '#ef4444',
+    icon: 'music-note',
     file: 'gentle.wav',
     description: 'Soft wake-up tone',
   },
   {
-    name: 'Energetic',
-    color: '#ef4444',
-    icon: '⚡',
+    name: 'Ocean',
+    color: '#06b6d4',
+    icon: 'music-note',
     file: 'energetic.wav',
     description: 'High energy alarm',
   },
   {
-    name: 'Nature',
-    color: '#06b6d4',
-    icon: '🌊',
+    name: 'Rain',
+    color: '#8b5cf6',
+    icon: 'music-note',
     file: 'nature.wav',
     description: 'Natural sounds',
   },
   {
-    name: 'Digital',
-    color: '#8b5cf6',
-    icon: '📱',
+    name: 'Birds',
+    color: '#ff6b35',
+    icon: 'music-note',
     file: 'digital.wav',
     description: 'Digital beeps',
   },
@@ -550,57 +557,26 @@ export default function AddAlarmScreen() {
 
         {/* Melody Selection */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Select Alarm Sound</Text>
-          <Text style={styles.sectionSubtitle}>
-            Tap to select, long press to preview
-          </Text>
-          <View style={styles.melodiesContainerNew}>
+          <View style={styles.melodiesHorizontalContainer}>
             {MELODIES.map((melody) => (
               <TouchableOpacity
                 key={melody.name}
-                style={[
-                  styles.melodyCard,
-                  selectedMelody.name === melody.name &&
-                    styles.melodyCardActive,
-                ]}
+                style={styles.melodySquareContainer}
                 onPress={() => setSelectedMelody(melody)}
                 onLongPress={() => playPreviewSound(melody)}
                 delayLongPress={200}
               >
-                <View style={styles.melodyCardContent}>
-                  <View
-                    style={[
-                      styles.melodyIconContainer,
-                      { backgroundColor: melody.color },
-                    ]}
-                  >
-                    <Text style={styles.melodyIconNew}>{melody.icon}</Text>
-                  </View>
-                  <View style={styles.melodyInfo}>
-                    <Text
-                      style={[
-                        styles.melodyNameNew,
-                        selectedMelody.name === melody.name &&
-                          styles.melodyNameActive,
-                      ]}
-                    >
-                      {melody.name}
-                    </Text>
-                    <Text style={styles.melodyDescription}>
-                      {melody.description}
-                    </Text>
-                  </View>
-                  {playingPreview === melody.name && (
-                    <MaterialIcons name="volume-up" size={20} color="#6366f1" />
-                  )}
-                  {selectedMelody.name === melody.name && (
-                    <MaterialIcons
-                      name="check-circle"
-                      size={24}
-                      color="#6366f1"
-                    />
-                  )}
+                <View
+                  style={[
+                    styles.melodySquare,
+                    { backgroundColor: melody.color },
+                    selectedMelody.name === melody.name &&
+                      styles.melodySquareSelected,
+                  ]}
+                >
+                  <MaterialIcons name={melody.icon} size={24} color="white" />
                 </View>
+                <Text style={styles.melodySquareLabel}>{melody.name}</Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -815,51 +791,32 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     marginTop: -8,
   },
-  melodiesContainerNew: {
-    gap: 12,
-  },
-  melodyCard: {
-    backgroundColor: '#f8fafc',
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: '#e2e8f0',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-  },
-  melodyCardActive: {
-    backgroundColor: '#eff6ff',
-    borderColor: '#6366f1',
-  },
-  melodyCardContent: {
+  melodiesHorizontalContainer: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 5,
+  },
+  melodySquareContainer: {
     alignItems: 'center',
-    gap: 12,
-  },
-  melodyIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  melodyIconNew: {
-    fontSize: 24,
-  },
-  melodyInfo: {
     flex: 1,
   },
-  melodyNameNew: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1e293b',
-    marginBottom: 2,
+  melodySquare: {
+    width: 60,
+    height: 60,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
   },
-  melodyNameActive: {
-    color: '#6366f1',
+  melodySquareSelected: {
+    transform: [{ scale: 0.9 }],
+    opacity: 0.8,
   },
-  melodyDescription: {
-    fontSize: 13,
+  melodySquareLabel: {
+    fontSize: 14,
+    fontWeight: '500',
     color: '#64748b',
+    textAlign: 'center',
   },
   workoutContainer: {
     gap: 12,

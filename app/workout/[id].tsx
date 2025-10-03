@@ -12,6 +12,9 @@ import { Audio } from 'expo-av';
 import * as KeepAwake from 'expo-keep-awake';
 import * as Haptics from 'expo-haptics';
 import { Accelerometer } from 'expo-sensors';
+import { LinearGradient } from 'expo-linear-gradient';
+import { MaterialIcons } from '@expo/vector-icons';
+import * as Progress from 'react-native-progress';
 import AlarmManager, { Alarm } from '@/utils/alarmManager';
 
 // Sound file mapping for dynamic requires
@@ -239,14 +242,9 @@ export default function WorkoutScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <LinearGradient colors={['#FF8C42', '#FF6B35']} style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.alarmText}>ALARM 🔔</Text>
-        {alarm && (
-          <Text style={styles.alarmTitle}>
-            {alarm.title || 'Morning Workout'}
-          </Text>
-        )}
+        <Text style={styles.alarmText}>ALARM ACTIVE</Text>
         <Text style={styles.timeText}>
           {new Date().toLocaleTimeString([], {
             hour: '2-digit',
@@ -254,161 +252,143 @@ export default function WorkoutScreen() {
             hour12: true,
           })}
         </Text>
+        {alarm && (
+          <Text style={styles.alarmTitle}>{alarm.title || 'Test new'}</Text>
+        )}
       </View>
 
       <View style={styles.workoutSection}>
         <Text style={styles.workoutTitle}>{getWorkoutTitle()}</Text>
         <Text style={styles.instructions}>{getWorkoutInstructions()}</Text>
 
-        <View style={styles.counterContainer}>
-          <Text style={styles.counterText}>
-            {session.current} / {session.target}
-          </Text>
-          <View style={styles.progressBar}>
-            <View
-              style={[
-                styles.progressFill,
-                { width: `${(session.current / session.target) * 100}%` },
-              ]}
-            />
+        <View style={styles.progressSection}>
+          <View style={styles.counterContainer}>
+            <Text style={styles.counterText}>{session.current}</Text>
+            <Text style={styles.targetText}>/ {session.target} reps</Text>
           </View>
+
+          <Progress.Circle
+            size={140}
+            progress={session.current / session.target}
+            showsText={false}
+            color="rgba(255,255,255,0.9)"
+            unfilledColor="rgba(255,255,255,0.2)"
+            borderWidth={0}
+            thickness={8}
+            style={styles.progressCircle}
+          />
         </View>
 
-        {session.isActive && (
-          <View style={styles.motionIndicator}>
-            <Text style={styles.motionText}>
-              Movement: {accelerometerData.x.toFixed(2)},{' '}
-              {accelerometerData.y.toFixed(2)}, {accelerometerData.z.toFixed(2)}
-            </Text>
-          </View>
-        )}
-      </View>
-
-      <View style={styles.motivationSection}>
         <Text style={styles.motivationText}>
-          {session.current === 0 && "Let's get moving! 💪"}
+          {session.current === 0 && 'Great start! Keep the momentum going!'}
           {session.current > 0 &&
             session.current < session.target &&
-            "Keep going! You're doing great! 🔥"}
-          {session.current >= session.target && 'Amazing! You did it! 🎉'}
+            'Great start! Keep the momentum going!'}
+          {session.current >= session.target && 'Amazing! You did it!'}
+          <Text style={styles.fireEmoji}> 🔥</Text>
         </Text>
       </View>
 
-      <TouchableOpacity
-        style={[styles.emergencyButton, { opacity: 0.3 }]}
-        onPress={() =>
-          Alert.alert('Emergency Only', 'This button is for emergencies only!')
-        }
-      >
-        <Text style={styles.emergencyText}>Emergency Dismiss</Text>
-      </TouchableOpacity>
-    </View>
+      <View style={styles.bottomSection}>
+        <TouchableOpacity style={styles.emergencyButton}>
+          <MaterialIcons name="warning" size={20} color="white" />
+          <Text style={styles.emergencyText}>Emergency Dismiss</Text>
+        </TouchableOpacity>
+      </View>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1e293b',
     paddingHorizontal: 20,
-    paddingTop: 50,
+    paddingTop: 60,
   },
-  header: {
-    alignItems: 'center',
-    marginBottom: 50,
-  },
+  header: { alignItems: 'center', marginBottom: 80 },
   alarmText: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
-    color: '#ef4444',
-    letterSpacing: 2,
-    marginBottom: 8,
-  },
-  alarmTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#ffffff',
-    marginBottom: 12,
-    textAlign: 'center',
+    color: 'rgba(255,255,255,0.9)',
+    letterSpacing: 3,
+    marginBottom: 30,
   },
   timeText: {
-    fontSize: 48,
-    fontWeight: '700',
+    fontSize: 56,
+    fontWeight: '300',
     color: 'white',
+    marginBottom: 25,
+    letterSpacing: -2,
+  },
+  alarmTitle: {
+    fontSize: 22,
+    fontWeight: '400',
+    color: 'rgba(255,255,255,0.9)',
+    marginBottom: 15,
   },
   workoutSection: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    paddingTop: 30,
   },
   workoutTitle: {
-    fontSize: 32,
-    fontWeight: '700',
+    fontSize: 48,
+    fontWeight: '300',
     color: 'white',
-    marginBottom: 20,
     textAlign: 'center',
+    letterSpacing: -1,
+    marginBottom: 30,
   },
   instructions: {
     fontSize: 18,
-    color: '#94a3b8',
+    color: 'rgba(255,255,255,0.8)',
     textAlign: 'center',
-    marginBottom: 40,
+    marginBottom: 60,
     lineHeight: 24,
+    paddingHorizontal: 30,
   },
-  counterContainer: {
-    alignItems: 'center',
-    marginBottom: 30,
-  },
+  progressSection: { alignItems: 'center', marginBottom: 40 },
+  counterContainer: { alignItems: 'center', marginBottom: 30 },
   counterText: {
-    fontSize: 64,
-    fontWeight: '800',
-    color: '#06b6d4',
-    marginBottom: 20,
+    fontSize: 120,
+    fontWeight: '200',
+    color: 'white',
+    letterSpacing: -5,
   },
-  progressBar: {
-    width: 200,
-    height: 8,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    borderRadius: 4,
-    overflow: 'hidden',
+  targetText: {
+    fontSize: 20,
+    color: 'rgba(255,255,255,0.8)',
+    marginTop: 5,
+    fontWeight: '300',
   },
-  progressFill: {
-    height: '100%',
-    backgroundColor: '#06b6d4',
-    borderRadius: 4,
-  },
-  motionIndicator: {
-    marginTop: 30,
-    padding: 15,
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    borderRadius: 12,
-  },
-  motionText: {
-    fontSize: 12,
-    color: '#94a3b8',
-    fontFamily: 'monospace',
-  },
-  motivationSection: {
-    alignItems: 'center',
-    marginBottom: 40,
-  },
+  progressCircle: { marginVertical: 30 },
   motivationText: {
     fontSize: 20,
-    fontWeight: '600',
-    color: '#f59e0b',
+    fontWeight: '500',
+    color: 'white',
     textAlign: 'center',
+    marginBottom: 60,
+    lineHeight: 28,
   },
+  fireEmoji: {
+    fontSize: 20,
+  },
+  bottomSection: { paddingBottom: 40 },
   emergencyButton: {
-    backgroundColor: '#dc2626',
-    paddingVertical: 15,
-    paddingHorizontal: 30,
-    borderRadius: 12,
+    flexDirection: 'row',
+    backgroundColor: 'rgba(220, 38, 38, 0.9)',
+    paddingVertical: 18,
+    paddingHorizontal: 20,
+    borderRadius: 16,
     alignItems: 'center',
-    marginBottom: 30,
+    justifyContent: 'center',
+    marginHorizontal: 20,
   },
   emergencyText: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '600',
     color: 'white',
+    marginLeft: 8,
   },
 });
