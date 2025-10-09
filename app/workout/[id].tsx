@@ -252,9 +252,9 @@ export default function WorkoutScreen() {
             hour12: true,
           })}
         </Text>
-        {alarm && (
+        {/* {alarm && (
           <Text style={styles.alarmTitle}>{alarm.title || 'Test new'}</Text>
-        )}
+        )} */}
       </View>
 
       <View style={styles.workoutSection}>

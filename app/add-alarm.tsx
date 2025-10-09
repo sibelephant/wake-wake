@@ -82,7 +82,7 @@ export default function AddAlarmScreen() {
     const displayHours = hours % 12 || 12;
 
     const success = await saveAlarm({
-      title: title || 'New Alarm',
+      title: title,
       time: `${String(displayHours).padStart(2, '0')}:${String(
         minutes
       ).padStart(2, '0')}`,

@@ -266,6 +266,7 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.9)',
     letterSpacing: 3,
     marginBottom: 12,
+    textAlign: 'center',
   },
   timeText: {
     fontSize: 56,
@@ -273,11 +274,14 @@ const styles = StyleSheet.create({
     color: 'white',
     marginBottom: 8,
     letterSpacing: -2,
+    textAlign: 'center',
   },
   alarmTitle: {
     fontSize: 22,
     fontWeight: '400',
-    color: 'rgba(255,255,255,0.9)',
+    color: 'rgba(255,255,255,0.95)',
+    textAlign: 'center',
+    marginTop: 4,
   },
   workoutSection: {
     flex: 1,
