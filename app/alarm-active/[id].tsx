@@ -16,6 +16,7 @@ import { Audio } from 'expo-av';
 import { useWorkoutDetector } from '@/components/WorkoutDetector';
 import { useAlarms } from '@/hooks';
 import { WORKOUT_TYPES, SOUND_MAP } from '@/constants';
+import { isCustomSound, getCustomSoundUri } from '@/utils/customSoundManager';
 
 export default function AlarmActiveScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -83,9 +84,20 @@ export default function AlarmActiveScreen() {
           shouldDuckAndroid: false,
         });
 
-        const soundSource = alarm?.melody
-          ? SOUND_MAP[alarm.melody]
-          : SOUND_MAP['alarm.mp3'];
+        let soundSource;
+
+        // Check if it's a custom sound
+        if (alarm?.melody && isCustomSound(alarm.melody)) {
+          const customUri = await getCustomSoundUri(alarm.melody);
+          if (customUri) {
+            soundSource = { uri: customUri };
+          }
+        } else {
+          // Use built-in sound
+          soundSource = alarm?.melody
+            ? SOUND_MAP[alarm.melody]
+            : SOUND_MAP['alarm.mp3'];
+        }
 
         if (soundSource) {
           const { sound } = await Audio.Sound.createAsync(soundSource, {

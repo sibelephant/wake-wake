@@ -25,7 +25,9 @@ import {
   MELODIES,
   WORKOUT_TYPES,
   DEFAULT_WORKOUT_DAYS,
+  MelodyType,
 } from '@/constants';
+import { CustomSound } from '@/utils/customSoundManager';
 import { theme } from '@/styles/theme';
 
 export default function AddAlarmScreen() {
@@ -43,7 +45,9 @@ export default function AddAlarmScreen() {
   );
   const [title, setTitle] = useState('');
   const [selectedColor, setSelectedColor] = useState<string>(ALARM_COLORS[0]);
-  const [selectedMelody, setSelectedMelody] = useState(MELODIES[0]);
+  const [selectedMelody, setSelectedMelody] = useState<
+    MelodyType | CustomSound
+  >(MELODIES[0]);
   const [workoutType, setWorkoutType] = useState(WORKOUT_TYPES[0]);
   const [workoutCount, setWorkoutCount] = useState(
     WORKOUT_TYPES[0].defaultCount
@@ -81,6 +85,10 @@ export default function AddAlarmScreen() {
     const period = hours >= 12 ? 'PM' : 'AM';
     const displayHours = hours % 12 || 12;
 
+    // Get melody identifier (file name for built-in, id for custom)
+    const melodyIdentifier =
+      'file' in selectedMelody ? selectedMelody.file : selectedMelody.id;
+
     const success = await saveAlarm({
       title: title,
       time: `${String(displayHours).padStart(2, '0')}:${String(
@@ -89,7 +97,7 @@ export default function AddAlarmScreen() {
       period: period as 'AM' | 'PM',
       days: selectedDays,
       color: selectedColor,
-      melody: selectedMelody.file,
+      melody: melodyIdentifier,
       enabled: true,
       workoutType: workoutType.name,
       workoutCount,
