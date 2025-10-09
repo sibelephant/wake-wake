@@ -84,7 +84,7 @@ export default function AlarmsScreen() {
               key={alarm.id}
               alarm={alarm}
               onToggle={toggleAlarm}
-              onPress={(id) => router.push(`/alarm-active/${id}`)}
+              onPress={(id) => router.push(`/edit-alarm/${id}`)}
               onLongPress={deleteAlarm}
             />
           ))

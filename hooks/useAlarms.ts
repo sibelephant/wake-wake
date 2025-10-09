@@ -114,6 +114,35 @@ export const useAlarms = () => {
     }
   }, []);
 
+  const updateAlarm = useCallback(
+    async (alarmId: string, updates: Partial<Alarm>) => {
+      try {
+        const alarmManager = AlarmManager.getInstance();
+        const notificationManager = NotificationManager.getInstance();
+
+        await alarmManager.updateAlarm(alarmId, updates);
+        const updatedAlarms = await alarmManager.loadAlarms();
+        setAlarms(updatedAlarms);
+
+        try {
+          await notificationManager.scheduleAlarmNotifications(updatedAlarms);
+          console.log('✅ Alarm updated and notifications rescheduled');
+        } catch (notificationError) {
+          console.warn(
+            '⚠️ Alarm updated but notification scheduling failed:',
+            notificationError
+          );
+        }
+
+        return true;
+      } catch (error) {
+        console.error('❌ Error updating alarm:', error);
+        return false;
+      }
+    },
+    []
+  );
+
   return {
     alarms,
     loading,
@@ -121,5 +150,6 @@ export const useAlarms = () => {
     toggleAlarm,
     deleteAlarm,
     saveAlarm,
+    updateAlarm,
   };
 };
