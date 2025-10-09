@@ -8,10 +8,11 @@ import {
   ScrollView,
   StatusBar,
   Alert,
+  Platform,
 } from 'react-native';
 import { router } from 'expo-router';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import {
-  TimePickerModal,
   WorkoutCountModal,
   DaySelector,
   ColorSelector,
@@ -25,12 +26,18 @@ import {
   WORKOUT_TYPES,
   DEFAULT_WORKOUT_DAYS,
 } from '@/constants';
-import { TimeState } from '@/types';
 import { theme } from '@/styles/theme';
 
 export default function AddAlarmScreen() {
-  const [time, setTime] = useState<TimeState>({ hours: 9, minutes: 0 });
-  const [period, setPeriod] = useState<'AM' | 'PM'>('AM');
+  // Create a Date object for the time picker
+  const [selectedDate, setSelectedDate] = useState(() => {
+    const date = new Date();
+    date.setHours(9);
+    date.setMinutes(0);
+    return date;
+  });
+
+  const [showTimePicker, setShowTimePicker] = useState(Platform.OS === 'ios');
   const [selectedDays, setSelectedDays] = useState<string[]>(
     DEFAULT_WORKOUT_DAYS as unknown as string[]
   );
@@ -42,7 +49,6 @@ export default function AddAlarmScreen() {
     WORKOUT_TYPES[0].defaultCount
   );
   const [showCountModal, setShowCountModal] = useState(false);
-  const [showTimeModal, setShowTimeModal] = useState(false);
 
   const { playPreviewSound } = useAlarmSound();
   const { saveAlarm } = useAlarms();
@@ -52,18 +58,35 @@ export default function AddAlarmScreen() {
     setWorkoutCount(workout.defaultCount);
   };
 
+  const handleTimeChange = (event: any, date?: Date) => {
+    // On Android, hide the picker when user dismisses or selects
+    if (Platform.OS === 'android') {
+      setShowTimePicker(false);
+    }
+
+    // Update the time if a date was selected (not cancelled)
+    if (event.type === 'set' && date) {
+      setSelectedDate(date);
+    }
+  };
+
   const handleSaveAlarm = async () => {
     if (selectedDays.length === 0) {
       Alert.alert('Error', 'Please select at least one day for the alarm');
       return;
     }
 
+    const hours = selectedDate.getHours();
+    const minutes = selectedDate.getMinutes();
+    const period = hours >= 12 ? 'PM' : 'AM';
+    const displayHours = hours % 12 || 12;
+
     const success = await saveAlarm({
       title: title || 'New Alarm',
-      time: `${String(time.hours).padStart(2, '0')}:${String(
-        time.minutes
+      time: `${String(displayHours).padStart(2, '0')}:${String(
+        minutes
       ).padStart(2, '0')}`,
-      period,
+      period: period as 'AM' | 'PM',
       days: selectedDays,
       color: selectedColor,
       melody: selectedMelody.file,
@@ -96,62 +119,35 @@ export default function AddAlarmScreen() {
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Time Picker */}
-        <TouchableOpacity
-          style={styles.timePickerContainer}
-          onPress={() => setShowTimeModal(true)}
-          activeOpacity={0.7}
-        >
-          <View style={styles.timePicker}>
-            <View style={styles.timeColumn}>
-              <Text style={styles.timeLabel}>Hours</Text>
-              <View style={styles.timeValues}>
-                <Text style={styles.inactiveTime}>
-                  {String(time.hours === 1 ? 12 : time.hours - 1).padStart(
-                    2,
-                    '0'
-                  )}
-                </Text>
-                <Text style={styles.activeTime}>
-                  {String(time.hours).padStart(2, '0')}
-                </Text>
-                <Text style={styles.inactiveTime}>
-                  {String(time.hours === 12 ? 1 : time.hours + 1).padStart(
-                    2,
-                    '0'
-                  )}
-                </Text>
-              </View>
-            </View>
-            <Text style={styles.timeSeparator}>:</Text>
-            <View style={styles.timeColumn}>
-              <Text style={styles.timeLabel}>Minutes</Text>
-              <View style={styles.timeValues}>
-                <Text style={styles.inactiveTime}>
-                  {String((time.minutes + 59) % 60).padStart(2, '0')}
-                </Text>
-                <Text style={styles.activeTime}>
-                  {String(time.minutes).padStart(2, '0')}
-                </Text>
-                <Text style={styles.inactiveTime}>
-                  {String((time.minutes + 1) % 60).padStart(2, '0')}
-                </Text>
-              </View>
-            </View>
-            <View style={styles.timeColumn}>
-              <Text style={styles.timeLabel}>Period</Text>
-              <View style={styles.timeValues}>
-                <Text style={styles.inactiveTime}>
-                  {period === 'AM' ? 'PM' : 'AM'}
-                </Text>
-                <Text style={styles.activeTime}>{period}</Text>
-                <Text style={styles.inactiveTime}>
-                  {period === 'AM' ? 'PM' : 'AM'}
-                </Text>
-              </View>
-            </View>
-          </View>
-          <Text style={styles.tapToEditText}>Tap to edit time</Text>
-        </TouchableOpacity>
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Set Alarm Time</Text>
+
+          {Platform.OS === 'android' && !showTimePicker && (
+            <TouchableOpacity
+              style={styles.timeButton}
+              onPress={() => setShowTimePicker(true)}
+            >
+              <Text style={styles.timeButtonText}>
+                {selectedDate.toLocaleTimeString('en-US', {
+                  hour: 'numeric',
+                  minute: '2-digit',
+                  hour12: true,
+                })}
+              </Text>
+            </TouchableOpacity>
+          )}
+
+          {showTimePicker && (
+            <DateTimePicker
+              value={selectedDate}
+              mode="time"
+              is24Hour={false}
+              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+              onChange={handleTimeChange}
+              style={styles.dateTimePicker}
+            />
+          )}
+        </View>
 
         {/* Days Selector */}
         <View style={styles.section}>
@@ -200,14 +196,6 @@ export default function AddAlarmScreen() {
         />
       </ScrollView>
 
-      <TimePickerModal
-        visible={showTimeModal}
-        time={time}
-        period={period}
-        onTimeChange={setTime}
-        onPeriodChange={setPeriod}
-        onClose={() => setShowTimeModal(false)}
-      />
       <WorkoutCountModal
         visible={showCountModal}
         workoutType={workoutType}
@@ -252,44 +240,32 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: theme.spacing.xl,
   },
-  timePickerContainer: {
-    alignItems: 'center',
-    paddingVertical: 40,
-  },
-  timePicker: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  timeColumn: {
-    alignItems: 'center',
-  },
-  timeLabel: {
-    fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.text.secondary,
-    marginBottom: theme.spacing.xl,
-  },
-  timeValues: {
-    alignItems: 'center',
-  },
-  inactiveTime: {
-    fontSize: theme.typography.fontSize.xl,
-    color: theme.colors.border.dark,
-    marginVertical: 5,
-  },
-  activeTime: {
-    fontSize: theme.typography.fontSize.display,
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.text.primary,
-    marginVertical: 5,
-  },
-  timeSeparator: {
-    fontSize: theme.typography.fontSize.display,
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.text.primary,
-    marginHorizontal: theme.spacing.xl,
-  },
   section: {
     marginBottom: theme.spacing.xxl,
+  },
+  sectionTitle: {
+    fontSize: theme.typography.fontSize.base,
+    fontWeight: theme.typography.fontWeight.semibold,
+    color: theme.colors.text.primary,
+    marginBottom: theme.spacing.md,
+  },
+  timeButton: {
+    backgroundColor: theme.colors.white,
+    borderWidth: 1,
+    borderColor: theme.colors.border.medium,
+    borderRadius: theme.borderRadius.md,
+    paddingVertical: theme.spacing.lg,
+    paddingHorizontal: theme.spacing.xl,
+    alignItems: 'center',
+  },
+  timeButtonText: {
+    fontSize: theme.typography.fontSize.xl,
+    fontWeight: theme.typography.fontWeight.semibold,
+    color: theme.colors.text.primary,
+  },
+  dateTimePicker: {
+    alignSelf: 'flex-start',
+    marginTop: theme.spacing.sm,
   },
   titleInput: {
     borderWidth: 1,
@@ -299,11 +275,5 @@ const styles = StyleSheet.create({
     paddingVertical: theme.spacing.md,
     fontSize: theme.typography.fontSize.base,
     color: theme.colors.text.primary,
-  },
-  tapToEditText: {
-    fontSize: theme.typography.fontSize.md,
-    color: theme.colors.text.tertiary,
-    marginTop: 10,
-    textAlign: 'center',
   },
 });
