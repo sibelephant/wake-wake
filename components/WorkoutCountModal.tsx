@@ -1,5 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Modal, TouchableOpacity, TextInput } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  Modal,
+  TouchableOpacity,
+  TextInput,
+} from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { WorkoutType } from '@/constants';
 import { UI_COLORS } from '@/constants';
@@ -32,7 +39,7 @@ export const WorkoutCountModal: React.FC<WorkoutCountModalProps> = ({
     // Only allow numbers
     const numericText = text.replace(/[^0-9]/g, '');
     setInputValue(numericText);
-    
+
     // Update count if valid number
     const numValue = parseInt(numericText, 10);
     if (!isNaN(numValue) && numValue > 0) {
@@ -50,7 +57,7 @@ export const WorkoutCountModal: React.FC<WorkoutCountModalProps> = ({
         <View style={styles.modalContent}>
           <Text style={styles.modalTitle}>Set {workoutType.display} Count</Text>
           <Text style={styles.modalSubtitle}>How many {workoutType.unit}?</Text>
-          
+
           <View style={styles.countSelector}>
             <TouchableOpacity
               style={styles.countButton}
@@ -77,9 +84,11 @@ export const WorkoutCountModal: React.FC<WorkoutCountModalProps> = ({
               <MaterialIcons name="add" size={24} color={UI_COLORS.primary} />
             </TouchableOpacity>
           </View>
-          
-          <Text style={styles.helpText}>Tap the number to type a custom amount</Text>
-          
+
+          <Text style={styles.helpText}>
+            Tap the number to type a custom amount
+          </Text>
+
           <View style={styles.modalButtons}>
             <TouchableOpacity
               style={styles.modalCancelButton}
