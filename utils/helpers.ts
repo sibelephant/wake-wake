@@ -21,16 +21,7 @@ export const formatWorkoutType = (type: string): string => {
  */
 export const getWorkoutInstructions = (type: string): string => {
   const instructions: Record<string, string> = {
-    'jumping-jacks':
-      'Jump with arms and legs spread, then return to start position',
-    'push-ups': 'Lower your body to the ground, then push back up',
-    'sit-ups': 'Lie down and raise your torso to a sitting position',
-    squats: 'Lower your body by bending your knees, then stand back up',
-    burpees: 'Jump down to plank, do a push-up, jump back up',
     steps: 'Walk around or march in place',
-    plank: 'Hold your body in a straight line, supported on forearms and toes',
-    'mountain-climbers':
-      'From plank position, alternate bringing knees to chest',
   };
 
   return instructions[type] || 'Complete the exercise movements';

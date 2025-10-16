@@ -162,9 +162,12 @@ export default function EditAlarmScreen() {
     });
 
     if (success) {
-      Alert.alert('Success', 'Alarm updated successfully!', [
-        { text: 'OK', onPress: () => router.back() },
-      ]);
+      // Navigate back immediately (don't wait for alert)
+      router.dismiss();
+      // Show success message after navigation
+      setTimeout(() => {
+        Alert.alert('Success', 'Alarm updated successfully!');
+      }, 100);
     } else {
       Alert.alert('Error', 'Failed to update alarm. Please try again.');
     }

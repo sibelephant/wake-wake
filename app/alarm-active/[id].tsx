@@ -9,25 +9,32 @@ import {
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as Progress from 'react-native-progress';
-import { Animated } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, router } from 'expo-router';
 import { Audio } from 'expo-av';
 import { useWorkoutDetector } from '@/components/WorkoutDetector';
+import { StyledText, TextBold, TextSemiBold } from '@/components';
 import { useAlarms } from '@/hooks';
 import { WORKOUT_TYPES, SOUND_MAP } from '@/constants';
 import { isCustomSound, getCustomSoundUri } from '@/utils/customSoundManager';
 
 export default function AlarmActiveScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { alarms } = useAlarms();
+  const { alarms, loadAlarms } = useAlarms();
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isLoading, setIsLoading] = useState(true);
+  const [startTime] = useState(new Date());
   const alarmSoundRef = useRef<Audio.Sound | null>(null);
-  const pulseAnim = useRef(new Animated.Value(1)).current;
 
   // Find the alarm data
   const alarm = alarms.find((a) => a.id === id);
+
+  // Load alarms if not loaded yet
+  useEffect(() => {
+    if (alarms.length === 0) {
+      loadAlarms();
+    }
+  }, [alarms.length, loadAlarms]);
 
   // Get workout type configuration
   const workoutType =
@@ -39,28 +46,31 @@ export default function AlarmActiveScreen() {
     workoutType: alarm?.workoutType || 'steps',
     targetCount: alarm?.workoutCount || 100,
     onProgress: (count) => {
-      // Trigger pulse animation on each rep
-      Animated.sequence([
-        Animated.timing(pulseAnim, {
-          toValue: 1.2,
-          duration: 100,
-          useNativeDriver: true,
-        }),
-        Animated.timing(pulseAnim, {
-          toValue: 1,
-          duration: 100,
-          useNativeDriver: true,
-        }),
-      ]).start();
+      // Animation removed for cleaner experience
     },
     onComplete: async () => {
+      // Calculate duration in seconds
+      const duration = Math.floor(
+        (new Date().getTime() - startTime.getTime()) / 1000
+      );
+
       // Stop alarm sound
       if (alarmSoundRef.current) {
         await alarmSoundRef.current.stopAsync();
         await alarmSoundRef.current.unloadAsync();
       }
-      // Navigate to completion screen
-      router.replace(`/workout-complete/${id}`);
+
+      // Navigate to completion screen with workout data
+      const params = new URLSearchParams({
+        alarmId: id || '',
+        alarmTitle: alarm?.title || 'Alarm',
+        workoutType: alarm?.workoutType || 'steps',
+        target: (alarm?.workoutCount || 100).toString(),
+        completed: (alarm?.workoutCount || 100).toString(),
+        duration: duration.toString(),
+      });
+
+      router.push(`/workout-complete/${id}?${params.toString()}` as any);
     },
     isActive: true,
   });
@@ -76,6 +86,11 @@ export default function AlarmActiveScreen() {
 
   // Play alarm sound on mount
   useEffect(() => {
+    // Don't play sound until we have alarm data
+    if (!alarm) {
+      return;
+    }
+
     const playAlarmSound = async () => {
       try {
         await Audio.setAudioModeAsync({
@@ -89,14 +104,18 @@ export default function AlarmActiveScreen() {
         // Check if it's a custom sound
         if (alarm?.melody && isCustomSound(alarm.melody)) {
           const customUri = await getCustomSoundUri(alarm.melody);
+
           if (customUri) {
             soundSource = { uri: customUri };
+          } else {
+            console.warn('Custom sound URI not found, using default');
+            soundSource = SOUND_MAP['samsung.mp3'];
           }
         } else {
           // Use built-in sound
           soundSource = alarm?.melody
             ? SOUND_MAP[alarm.melody]
-            : SOUND_MAP['alarm.mp3'];
+            : SOUND_MAP['samsung.mp3'];
         }
 
         if (soundSource) {
@@ -125,14 +144,14 @@ export default function AlarmActiveScreen() {
         alarmSoundRef.current.unloadAsync();
       }
     };
-  }, [alarm?.melody]);
+  }, [alarm]);
 
   // Show loading state or handle missing alarm
   if (isLoading) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#FF8C42" />
-        <Text style={styles.loadingText}>Starting alarm...</Text>
+        <StyledText style={styles.loadingText}>Starting alarm...</StyledText>
       </View>
     );
   }
@@ -210,28 +229,27 @@ export default function AlarmActiveScreen() {
   return (
     <LinearGradient colors={['#FF8C42', '#FF6B35']} style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.alarmText}>ALARM ACTIVE</Text>
-        <Text style={styles.timeText}>{formatTime()}</Text>
+        <StyledText style={styles.alarmText}>ALARM ACTIVE</StyledText>
+        <StyledText style={styles.timeText}>{formatTime()}</StyledText>
       </View>
 
       <View style={styles.workoutSection}>
-        <Animated.View
-          style={[
-            styles.workoutTitleContainer,
-            { transform: [{ scale: pulseAnim }] },
-          ]}
-        >
-          <Text style={styles.workoutTitle}>{workoutType.display}</Text>
-        </Animated.View>
+        <View style={styles.workoutTitleContainer}>
+          <StyledText style={styles.workoutTitle}>
+            {workoutType.display}
+          </StyledText>
+        </View>
 
-        <Text style={styles.instructions}>{getWorkoutInstructions()}</Text>
+        <StyledText style={styles.instructions}>
+          {getWorkoutInstructions()}
+        </StyledText>
 
         <View style={styles.progressSection}>
           <View style={styles.counterContainer}>
-            <Text style={styles.counterText}>{currentCount}</Text>
-            <Text style={styles.targetText}>
+            <StyledText style={styles.counterText}>{currentCount}</StyledText>
+            <StyledText style={styles.targetText}>
               / {alarm.workoutCount} {workoutType.unit}
-            </Text>
+            </StyledText>
           </View>
 
           <Progress.Circle
@@ -246,10 +264,10 @@ export default function AlarmActiveScreen() {
           />
         </View>
 
-        <Text style={styles.motivationText}>
+        <StyledText style={styles.motivationText}>
           {getMotivationalMessage()}
-          <Text style={styles.fireEmoji}> 🔥</Text>
-        </Text>
+          <StyledText style={styles.fireEmoji}> 🔥</StyledText>
+        </StyledText>
       </View>
 
       <View style={styles.bottomSection}>
@@ -258,7 +276,9 @@ export default function AlarmActiveScreen() {
           onPress={handleEmergencyDismiss}
         >
           <MaterialIcons name="warning" size={20} color="white" />
-          <Text style={styles.emergencyText}>Emergency Dismiss</Text>
+          <TextSemiBold style={styles.emergencyText}>
+            Emergency Dismiss
+          </TextSemiBold>
         </TouchableOpacity>
       </View>
     </LinearGradient>
@@ -268,29 +288,28 @@ export default function AlarmActiveScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingHorizontal: 20,
-    paddingTop: 50,
+    paddingHorizontal: 24,
+    paddingTop: 60,
   },
-  header: { alignItems: 'center', marginBottom: 50 },
+  header: {
+    alignItems: 'center',
+    marginBottom: 40,
+  },
   alarmText: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 12,
     color: 'rgba(255,255,255,0.9)',
-    letterSpacing: 3,
-    marginBottom: 12,
+    letterSpacing: 2,
+    marginBottom: 8,
     textAlign: 'center',
   },
   timeText: {
-    fontSize: 56,
-    fontWeight: '300',
+    fontSize: 48,
     color: 'white',
-    marginBottom: 8,
-    letterSpacing: -2,
+    letterSpacing: -1,
     textAlign: 'center',
   },
   alarmTitle: {
-    fontSize: 22,
-    fontWeight: '400',
+    fontSize: 20,
     color: 'rgba(255,255,255,0.95)',
     textAlign: 'center',
     marginTop: 4,
@@ -299,64 +318,70 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingTop: 20,
   },
-  workoutTitleContainer: { marginBottom: 20 },
+  workoutTitleContainer: {
+    marginBottom: 16,
+  },
   workoutTitle: {
-    fontSize: 48,
-    fontWeight: '300',
+    fontSize: 40,
     color: 'white',
     textAlign: 'center',
     letterSpacing: -1,
   },
   instructions: {
-    fontSize: 18,
+    fontSize: 16,
     color: 'rgba(255,255,255,0.8)',
     textAlign: 'center',
-    marginBottom: 60,
-    lineHeight: 24,
-    paddingHorizontal: 30,
+    marginBottom: 48,
+    lineHeight: 22,
+    paddingHorizontal: 32,
   },
-  progressSection: { alignItems: 'center', marginBottom: 40 },
-  counterContainer: { alignItems: 'center', marginBottom: 30 },
+  progressSection: {
+    alignItems: 'center',
+    marginBottom: 32,
+  },
+  counterContainer: {
+    alignItems: 'center',
+    marginBottom: 24,
+  },
   counterText: {
-    fontSize: 120,
-    fontWeight: '200',
+    fontSize: 96,
     color: 'white',
-    letterSpacing: -5,
+    letterSpacing: -4,
   },
   targetText: {
-    fontSize: 20,
+    fontSize: 18,
     color: 'rgba(255,255,255,0.8)',
-    marginTop: 5,
-    fontWeight: '300',
+    marginTop: 4,
   },
-  progressCircle: { marginVertical: 30 },
+  progressCircle: {
+    marginVertical: 24,
+  },
   motivationText: {
-    fontSize: 20,
-    fontWeight: '500',
+    fontSize: 18,
     color: 'white',
     textAlign: 'center',
-    marginBottom: 60,
-    lineHeight: 28,
+    marginBottom: 48,
+    lineHeight: 26,
+    paddingHorizontal: 32,
   },
   fireEmoji: {
-    fontSize: 20,
+    fontSize: 18,
   },
-  bottomSection: { paddingBottom: 40 },
+  bottomSection: {
+    paddingBottom: 32,
+  },
   emergencyButton: {
     flexDirection: 'row',
     backgroundColor: 'rgba(220, 38, 38, 0.9)',
-    paddingVertical: 18,
-    paddingHorizontal: 20,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
     borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    marginHorizontal: 20,
   },
   emergencyText: {
-    fontSize: 18,
-    fontWeight: '600',
+    fontSize: 16,
     color: 'white',
     marginLeft: 8,
   },
@@ -366,5 +391,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#1e293b',
   },
-  loadingText: { fontSize: 18, color: 'white' },
+  loadingText: {
+    fontSize: 16,
+    color: 'white',
+    marginTop: 16,
+  },
 });

@@ -1,0 +1,14 @@
+{
+  "github.copilot.chat.codeGeneration.instructions": [
+    {
+      "text": "This is a React Native Expo project. Always reference Expo SDK 54 documentation when suggesting solutions."
+    }
+  ],
+  "github.copilot.chat.mcp.enabled": true,
+  "github.copilot.chat.mcp.servers": {
+    "fetch": {
+      "command": "uvx",
+      "args": ["mcp-server-fetch"]
+    }
+  }
+}

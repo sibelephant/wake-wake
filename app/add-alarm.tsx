@@ -18,6 +18,9 @@ import {
   ColorSelector,
   MelodySelector,
   WorkoutSelector,
+  StyledText,
+  TextMedium,
+  TextSemiBold,
 } from '@/components';
 import { useAlarmSound, useAlarms } from '@/hooks';
 import {
@@ -104,9 +107,12 @@ export default function AddAlarmScreen() {
     });
 
     if (success) {
-      Alert.alert('Success', 'Alarm created successfully!', [
-        { text: 'OK', onPress: () => router.back() },
-      ]);
+      // Navigate back immediately (don't wait for alert)
+      router.dismiss();
+      // Show success message after navigation
+      setTimeout(() => {
+        Alert.alert('Success', 'Alarm created successfully!');
+      }, 100);
     } else {
       Alert.alert('Error', 'Failed to save alarm. Please try again.');
     }
@@ -117,31 +123,33 @@ export default function AddAlarmScreen() {
       <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
-          <Text style={styles.cancelText}>Cancel</Text>
+          <StyledText style={styles.cancelText}>Cancel</StyledText>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Add Alarm</Text>
+        <TextSemiBold style={styles.headerTitle}>Add Alarm</TextSemiBold>
         <TouchableOpacity onPress={handleSaveAlarm}>
-          <Text style={styles.saveText}>Save</Text>
+          <TextSemiBold style={styles.saveText}>Save</TextSemiBold>
         </TouchableOpacity>
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Time Picker */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Set Alarm Time</Text>
+          <TextSemiBold style={styles.sectionTitle}>
+            Set Alarm Time
+          </TextSemiBold>
 
           {Platform.OS === 'android' && !showTimePicker && (
             <TouchableOpacity
               style={styles.timeButton}
               onPress={() => setShowTimePicker(true)}
             >
-              <Text style={styles.timeButtonText}>
+              <TextSemiBold style={styles.timeButtonText}>
                 {selectedDate.toLocaleTimeString('en-US', {
                   hour: 'numeric',
                   minute: '2-digit',
                   hour12: true,
                 })}
-              </Text>
+              </TextSemiBold>
             </TouchableOpacity>
           )}
 
@@ -236,12 +244,10 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: theme.typography.fontSize.lg,
-    fontWeight: theme.typography.fontWeight.semibold,
     color: theme.colors.text.primary,
   },
   saveText: {
     fontSize: theme.typography.fontSize.base,
-    fontWeight: theme.typography.fontWeight.semibold,
     color: theme.colors.primary,
   },
   content: {
@@ -253,7 +259,6 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: theme.typography.fontSize.base,
-    fontWeight: theme.typography.fontWeight.semibold,
     color: theme.colors.text.primary,
     marginBottom: theme.spacing.md,
   },
@@ -268,7 +273,6 @@ const styles = StyleSheet.create({
   },
   timeButtonText: {
     fontSize: theme.typography.fontSize.xl,
-    fontWeight: theme.typography.fontWeight.semibold,
     color: theme.colors.text.primary,
   },
   dateTimePicker: {

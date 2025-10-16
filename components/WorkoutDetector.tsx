@@ -52,40 +52,13 @@ export function useWorkoutDetector({
   }, [currentCount, targetCount, isActive]);
 
   const getUpdateInterval = (type: string): number => {
-    // Different workout types need different detection frequencies
-    switch (type) {
-      case 'jumping-jacks':
-      case 'burpees':
-        return 100; // Fast movements
-      case 'push-ups':
-      case 'sit-ups':
-      case 'squats':
-        return 150; // Medium movements
-      case 'plank':
-        return 500; // Slow/static
-      default:
-        return 100;
-    }
+    // Optimized for step detection
+    return 100; // Fast enough to catch each step
   };
 
   const getThreshold = (type: string): number => {
-    // Different thresholds for different workout types
-    switch (type) {
-      case 'jumping-jacks':
-        return 1.8; // High movement
-      case 'burpees':
-        return 2.0; // Very high movement
-      case 'push-ups':
-        return 1.5; // Moderate movement
-      case 'sit-ups':
-        return 1.4; // Moderate movement
-      case 'squats':
-        return 1.6; // Moderate-high movement
-      case 'mountain-climbers':
-        return 1.7; // High movement
-      default:
-        return 1.5;
-    }
+    // Threshold optimized for walking/step detection
+    return 1.3; // Moderate threshold for steps
   };
 
   const detectMovement = (data: { x: number; y: number; z: number }) => {

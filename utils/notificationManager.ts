@@ -115,14 +115,16 @@ export class NotificationManager {
       await Notifications.scheduleNotificationAsync({
         identifier: `${alarm.id}-${day}`,
         content: {
-          title: 'Alarm Active',
-          body: `Time for your ${alarm.title} workout`,
+          title: '⏰ Wake Up!',
+          body: `${alarm.title} - Get ready to walk ${alarm.workoutCount} steps!`,
           sound: true,
           priority: Notifications.AndroidNotificationPriority.MAX,
+          categoryIdentifier: 'alarm',
           data: {
             alarmId: alarm.id,
             workoutType: alarm.workoutType,
             workoutCount: alarm.workoutCount,
+            alarmTitle: alarm.title,
           },
         },
         trigger: {
@@ -164,14 +166,23 @@ export class NotificationManager {
       return;
     }
 
+    // Handle notification when app is in foreground
     Notifications.addNotificationReceivedListener((notification) => {
-      console.log('Notification received:', notification);
+      console.log('📲 Notification received (foreground):', notification);
+      const alarmId = notification.request.content.data?.alarmId;
+      if (alarmId) {
+        // Navigate immediately to alarm-active screen
+        router.push(`/alarm-active/${alarmId}` as any);
+      }
     });
 
+    // Handle notification tap (when app is in background or closed)
     Notifications.addNotificationResponseReceivedListener((response) => {
+      console.log('📲 Notification tapped:', response);
       const alarmId = response.notification.request.content.data?.alarmId;
       if (alarmId) {
-        router.push(`/workout/${alarmId}`);
+        // Navigate to alarm-active screen
+        router.push(`/alarm-active/${alarmId}` as any);
       }
     });
   }

@@ -13,52 +13,10 @@ export type WorkoutType = {
  */
 export const WORKOUT_TYPES: WorkoutType[] = [
   {
-    name: 'jumping-jacks',
-    display: 'Jumping Jacks',
-    defaultCount: 20,
-    unit: 'reps',
-  },
-  {
-    name: 'push-ups',
-    display: 'Push-ups',
-    defaultCount: 15,
-    unit: 'reps',
-  },
-  {
-    name: 'sit-ups',
-    display: 'Sit-ups',
-    defaultCount: 25,
-    unit: 'reps',
-  },
-  {
-    name: 'squats',
-    display: 'Squats',
-    defaultCount: 20,
-    unit: 'reps',
-  },
-  {
-    name: 'burpees',
-    display: 'Burpees',
-    defaultCount: 10,
-    unit: 'reps',
-  },
-  {
     name: 'steps',
     display: 'Walking Steps',
     defaultCount: 100,
     unit: 'steps',
-  },
-  {
-    name: 'plank',
-    display: 'Plank Hold',
-    defaultCount: 30,
-    unit: 'seconds',
-  },
-  {
-    name: 'mountain-climbers',
-    display: 'Mountain Climbers',
-    defaultCount: 30,
-    unit: 'reps',
   },
 ] as const;
 

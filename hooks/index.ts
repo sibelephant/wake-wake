@@ -4,3 +4,4 @@
 
 export * from './useAlarmSound';
 export * from './useAlarms';
+export * from './useWorkoutSessions';

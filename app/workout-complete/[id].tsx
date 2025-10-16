@@ -10,15 +10,43 @@ import { useLocalSearchParams, router } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
+import { saveWorkoutSession } from '@/utils/workoutSessionManager';
 
 export default function WorkoutCompleteScreen() {
   const params = useLocalSearchParams();
   const id = typeof params.id === 'string' ? params.id : params.id?.[0] || '';
 
+  // Extract workout data from params
+  const alarmId = (params.alarmId as string) || id;
+  const alarmTitle = (params.alarmTitle as string) || 'Alarm';
+  const workoutType = (params.workoutType as string) || 'steps';
+  const target = parseInt((params.target as string) || '100');
+  const completed = parseInt((params.completed as string) || '100');
+  const duration = parseInt((params.duration as string) || '0');
+
   const scaleAnim = new Animated.Value(0);
   const fadeAnim = new Animated.Value(0);
 
   useEffect(() => {
+    // Save workout session
+    const saveSession = async () => {
+      const success = await saveWorkoutSession({
+        alarmId,
+        alarmTitle,
+        workoutType,
+        target,
+        completed,
+        duration,
+        wasCompleted: completed >= target,
+      });
+
+      if (!success) {
+        console.error('❌ Failed to save workout session');
+      }
+    };
+
+    saveSession();
+
     // Celebration animation
     Animated.parallel([
       Animated.spring(scaleAnim, {
@@ -41,15 +69,28 @@ export default function WorkoutCompleteScreen() {
   }, []);
 
   const handleContinue = () => {
-    router.replace('/(tabs)');
+    // Navigate to the main alarm tab and reset navigation
+    if (router.canDismiss()) {
+      router.dismissAll();
+    }
+    router.replace('/(tabs)' as any);
   };
 
   const handleViewHistory = () => {
-    router.push('/workout-history');
+    // Navigate to workout history tab
+    if (router.canDismiss()) {
+      router.dismissAll();
+    }
+    router.replace('/(tabs)/workout-history' as any);
   };
 
   return (
     <LinearGradient colors={['#10b981', '#059669']} style={styles.container}>
+      {/* Emergency back button */}
+      <TouchableOpacity style={styles.backButton} onPress={handleContinue}>
+        <MaterialIcons name="close" size={24} color="white" />
+      </TouchableOpacity>
+
       <Animated.View
         style={[
           styles.content,
@@ -127,6 +168,18 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 20,
     paddingTop: 50,
+  },
+  backButton: {
+    position: 'absolute',
+    top: 50,
+    right: 20,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 10,
   },
   content: {
     flex: 1,

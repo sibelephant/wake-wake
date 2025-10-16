@@ -101,8 +101,15 @@ export class AlarmManager {
   }
 
   private triggerAlarm(alarm: Alarm): void {
-    // Navigate to workout screen
-    router.push(`/workout/${alarm.id}`);
+    // Navigate to alarm-active screen
+    console.log(
+      '🔔 Triggering alarm:',
+      alarm.id,
+      alarm.title,
+      'Sound:',
+      alarm.melody
+    );
+    router.push(`/alarm-active/${alarm.id}` as any);
   }
 
   async updateAlarm(id: string, updates: Partial<Alarm>): Promise<void> {

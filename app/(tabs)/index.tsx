@@ -13,7 +13,6 @@ import { router, useFocusEffect } from 'expo-router';
 import { AlarmCard } from '@/components';
 import { useAlarms } from '@/hooks';
 import { theme } from '@/styles/theme';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function AlarmsScreen() {
   const { alarms, loading, loadAlarms, toggleAlarm, deleteAlarm } = useAlarms();
@@ -24,29 +23,6 @@ export default function AlarmsScreen() {
       loadAlarms();
     }, [loadAlarms])
   );
-
-  // 🧪 Debug function for testing
-  const debugStorage = async () => {
-    const data = await AsyncStorage.getItem('alarms');
-    console.log('=== PHASE 1 DEBUG ===');
-    console.log('Raw AsyncStorage:', data);
-    if (data) {
-      const parsed = JSON.parse(data);
-      console.log('Parsed alarms:', parsed);
-      console.log('Total count:', parsed.length);
-      parsed.forEach((alarm: any, idx: number) => {
-        console.log(`Alarm ${idx + 1}:`, {
-          title: alarm.title,
-          time: alarm.time,
-          enabled: alarm.enabled,
-          days: alarm.days,
-        });
-      });
-    } else {
-      console.log('No alarms in storage');
-    }
-    console.log('==================');
-  };
 
   return (
     <View style={styles.container}>
@@ -88,14 +64,6 @@ export default function AlarmsScreen() {
               onLongPress={deleteAlarm}
             />
           ))
-        )}
-
-        {/* 🧪 Debug Button for Testing */}
-        {__DEV__ && (
-          <TouchableOpacity style={styles.debugButton} onPress={debugStorage}>
-            <MaterialIcons name="bug-report" size={20} color="#ffffff" />
-            <Text style={styles.debugButtonText}>Debug Storage</Text>
-          </TouchableOpacity>
         )}
       </ScrollView>
     </View>
@@ -160,22 +128,5 @@ const styles = StyleSheet.create({
     marginTop: theme.spacing.sm,
     fontSize: theme.typography.fontSize.base,
     color: theme.colors.text.tertiary,
-  },
-  debugButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#8b5cf6',
-    paddingVertical: theme.spacing.md,
-    paddingHorizontal: theme.spacing.xl,
-    borderRadius: theme.borderRadius.md,
-    marginTop: theme.spacing.xl,
-    marginBottom: theme.spacing.xxl,
-    gap: theme.spacing.sm,
-  },
-  debugButtonText: {
-    color: '#ffffff',
-    fontSize: theme.typography.fontSize.base,
-    fontWeight: theme.typography.fontWeight.semibold,
   },
 });

@@ -1,8 +1,9 @@
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system';
+import * as LegacyFileSystem from 'expo-file-system/legacy';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const CUSTOM_SOUNDS_DIR = `${FileSystem.documentDirectory}custom_sounds/`;
+const CUSTOM_SOUNDS_DIR = `${LegacyFileSystem.documentDirectory}custom_sounds/`;
 const CUSTOM_SOUNDS_KEY = 'custom_sounds';
 
 export type CustomSound = {
@@ -16,9 +17,9 @@ export type CustomSound = {
  * Initialize custom sounds directory
  */
 export const initCustomSoundsDirectory = async (): Promise<void> => {
-  const dirInfo = await FileSystem.getInfoAsync(CUSTOM_SOUNDS_DIR);
+  const dirInfo = await LegacyFileSystem.getInfoAsync(CUSTOM_SOUNDS_DIR);
   if (!dirInfo.exists) {
-    await FileSystem.makeDirectoryAsync(CUSTOM_SOUNDS_DIR, {
+    await LegacyFileSystem.makeDirectoryAsync(CUSTOM_SOUNDS_DIR, {
       intermediates: true,
     });
   }
@@ -62,7 +63,7 @@ export const pickCustomSound = async (): Promise<CustomSound | null> => {
     await initCustomSoundsDirectory();
 
     // Copy file to app's document directory
-    await FileSystem.copyAsync({
+    await LegacyFileSystem.copyAsync({
       from: asset.uri,
       to: destinationUri,
     });
@@ -121,9 +122,9 @@ export const deleteCustomSound = async (soundId: string): Promise<void> => {
 
     if (sound) {
       // Delete file
-      const fileInfo = await FileSystem.getInfoAsync(sound.uri);
+      const fileInfo = await LegacyFileSystem.getInfoAsync(sound.uri);
       if (fileInfo.exists) {
-        await FileSystem.deleteAsync(sound.uri);
+        await LegacyFileSystem.deleteAsync(sound.uri);
       }
 
       // Remove from storage

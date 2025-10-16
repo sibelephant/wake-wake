@@ -37,6 +37,12 @@ export const theme = {
     full: 9999,
   },
   typography: {
+    fontFamily: {
+      regular: 'Poppins_400Regular',
+      medium: 'Poppins_500Medium',
+      semibold: 'Poppins_600SemiBold',
+      bold: 'Poppins_700Bold',
+    },
     fontSize: {
       xs: 10,
       sm: 12,

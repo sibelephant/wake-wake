@@ -9,3 +9,4 @@ export * from './ColorSelector';
 export * from './MelodySelector';
 export * from './WorkoutSelector';
 export * from './AlarmCard';
+export * from './StyledText';
