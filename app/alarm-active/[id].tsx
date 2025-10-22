@@ -361,7 +361,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: 'white',
     textAlign: 'center',
-    marginBottom: 48,
+    marginBottom: 64,
     lineHeight: 26,
     paddingHorizontal: 32,
   },

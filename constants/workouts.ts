@@ -14,7 +14,7 @@ export type WorkoutType = {
 export const WORKOUT_TYPES: WorkoutType[] = [
   {
     name: 'steps',
-    display: 'Walking Steps',
+    display: '',
     defaultCount: 100,
     unit: 'steps',
   },
