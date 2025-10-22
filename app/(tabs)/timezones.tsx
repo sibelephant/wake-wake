@@ -335,10 +335,7 @@ export default function TimeZonesScreen() {
     const zoneTime = getTimeForTimezone(zone.offset);
 
     return (
-      <TouchableOpacity
-        style={styles.timezoneCard}
-        onLongPress={() => removeTimezone(zone.city)}
-      >
+      <View style={styles.timezoneCard}>
         <View style={styles.timezoneInfo}>
           <Text style={styles.cityName}>{zone.city}</Text>
           <Text style={styles.countryText}>
@@ -346,7 +343,13 @@ export default function TimeZonesScreen() {
           </Text>
         </View>
         <Text style={styles.timezoneTime}>{formatTime(zoneTime)}</Text>
-      </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.removeButton}
+          onPress={() => removeTimezone(zone.city)}
+        >
+          <MaterialIcons name="close" size={20} color="#64748b" />
+        </TouchableOpacity>
+      </View>
     );
   };
 
@@ -562,6 +565,15 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
     color: '#6366f1',
+    marginRight: 8,
+  },
+  removeButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#f1f5f9',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   emptyState: {
     alignItems: 'center',
