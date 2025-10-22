@@ -93,6 +93,7 @@ export const getAlarmWorkoutSessions = async (
 
 /**
  * Calculate workout statistics
+ * Average completion resets at the beginning of every month
  */
 export const getWorkoutStats = async (): Promise<WorkoutStats> => {
   try {
@@ -108,12 +109,34 @@ export const getWorkoutStats = async (): Promise<WorkoutStats> => {
       };
     }
 
+    // Get current month and year
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+
+    // Filter sessions to only include current month
+    const currentMonthSessions = sessions.filter((session) => {
+      const sessionDate = new Date(session.completedAt);
+      return (
+        sessionDate.getMonth() === currentMonth &&
+        sessionDate.getFullYear() === currentYear
+      );
+    });
+
+    // Use all sessions for total workouts and total exercises
     const totalWorkouts = sessions.length;
     const totalExercises = sessions.reduce((sum, s) => sum + s.completed, 0);
-    const averageCompletion = Math.round(
-      sessions.reduce((sum, s) => sum + (s.completed / s.target) * 100, 0) /
-        sessions.length
-    );
+
+    // Calculate average completion ONLY from current month's sessions
+    const averageCompletion =
+      currentMonthSessions.length > 0
+        ? Math.round(
+            currentMonthSessions.reduce(
+              (sum, s) => sum + (s.completed / s.target) * 100,
+              0
+            ) / currentMonthSessions.length
+          )
+        : 0;
 
     // Calculate streak (consecutive days with at least one workout)
     const streak = calculateStreak(sessions);

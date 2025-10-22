@@ -52,13 +52,13 @@ export function useWorkoutDetector({
   }, [currentCount, targetCount, isActive]);
 
   const getUpdateInterval = (type: string): number => {
-    // Optimized for step detection
-    return 100; // Fast enough to catch each step
+    // Faster polling for more responsive detection
+    return 50; // Increased from 100ms to catch steps more quickly
   };
 
   const getThreshold = (type: string): number => {
-    // Threshold optimized for walking/step detection
-    return 1.3; // Moderate threshold for steps
+    // Lower threshold for more sensitive step detection
+    return 1.1; // Reduced from 1.3 to detect lighter steps
   };
 
   const detectMovement = (data: { x: number; y: number; z: number }) => {
@@ -68,9 +68,9 @@ export function useWorkoutDetector({
     const threshold = getThreshold(workoutType);
     const now = Date.now();
 
-    // Add to movement buffer for smoothing
+    // Smaller buffer for faster response
     movementBuffer.current.push(magnitude);
-    if (movementBuffer.current.length > 5) {
+    if (movementBuffer.current.length > 3) { // Reduced from 5 to 3
       movementBuffer.current.shift();
     }
 
@@ -83,12 +83,12 @@ export function useWorkoutDetector({
     if (avgMagnitude > threshold && !isMoving.current) {
       isMoving.current = true;
 
-      // Debounce to avoid double-counting (minimum 500ms between reps)
-      if (now - lastMovementTime.current > 500) {
+      // Reduced debounce time for faster detection
+      if (now - lastMovementTime.current > 350) { // Reduced from 500ms to 350ms
         incrementCount();
         lastMovementTime.current = now;
       }
-    } else if (avgMagnitude < threshold * 0.7) {
+    } else if (avgMagnitude < threshold * 0.8) { // Adjusted from 0.7 to 0.8
       // Reset moving state when movement settles
       isMoving.current = false;
     }
