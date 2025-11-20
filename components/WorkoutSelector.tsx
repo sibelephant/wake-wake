@@ -19,7 +19,7 @@ export const WorkoutSelector: React.FC<WorkoutSelectorProps> = ({
   return (
     <View style={styles.section}>
       <Text style={styles.sectionTitle}>Wake-up Workout</Text>
-      <View style={styles.workoutContainer}>
+      {/* <View style={styles.workoutContainer}>
         {WORKOUT_TYPES.map((workout) => (
           <TouchableOpacity
             key={workout.name}
@@ -41,7 +41,7 @@ export const WorkoutSelector: React.FC<WorkoutSelectorProps> = ({
             </Text>
           </TouchableOpacity>
         ))}
-      </View>
+      </View> */}
       <TouchableOpacity style={styles.countCustomizer} onPress={onEditCount}>
         <Text style={styles.countCustomizerText}>
           {workoutCount} {selectedWorkout.unit}
